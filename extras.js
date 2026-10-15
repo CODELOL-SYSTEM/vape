@@ -1,5 +1,8 @@
 /* extras.js — à charger APRÈS app.js : <script src="extras.js" defer></script> */
 (() => {
+const $ = id => document.getElementById(id), $$ = q => [...document.querySelectorAll(q)], norm = x => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const ovo = id => { $(id).classList.add("on"); document.body.classList.add("lock"); }, ovs = id => { $(id).classList.remove("on"); if (!$$(".ov.on,.side.on").length) document.body.classList.remove("lock"); };
+addEventListener("error", e => { if (!$("xerr")) document.body.insertAdjacentHTML("afterbegin", '<div id="xerr" style="position:fixed;z-index:999;top:0;left:0;right:0;background:#b91c1c;color:#fff;padding:6px;text-align:center;font:12px system-ui">Erreur : ' + e.message + " (" + String(e.filename).split("/").pop() + ":" + e.lineno + ")</div>"); });
 const PAYPAL_USER = "SH0PNOVA"; // nom PayPal.Me (avec un zéro) : https://www.paypal.com/paypalme/SH0PNOVA/MONTANT
 const D = { theme: "light", accent: "#fa2d4e", font: "sys", size: 100, lang: "fr", anim: true, d3: true };
 let S; try { S = { ...D, ...JSON.parse(localStorage.getItem("settings") || "{}") }; } catch { S = { ...D }; }
@@ -37,7 +40,7 @@ function apply() {
   I18N.forEach(([sel, en, i = 0]) => { const el = $$(sel)[i]; if (!el) return; if (el.dataset.fr === undefined) el.dataset.fr = el.textContent; el.textContent = S.lang === "en" ? en : el.dataset.fr; });
   faq(); $$("#grid .fs").forEach(f => f.textContent = T("Livraison offerte dès 39 €", "Free shipping from €39"));
 }
-const _s3 = scene3d; scene3d = (...a) => S.d3 ? _s3(...a) : null;
+if (typeof scene3d === "function") { const _s3 = scene3d; scene3d = (...a) => S.d3 ? _s3(...a) : null; }
 
 /* ---------- Panneau paramètres ---------- */
 document.body.insertAdjacentHTML("beforeend", '<button id="bSet" aria-label="Paramètres">⚙</button><div class="ov" id="set"><div class="box s"><button class="x" aria-label="Fermer">✕</button><div id="setb"></div></div></div>');
@@ -54,9 +57,9 @@ function panel() {
     row("3D", seg("d3", [[true, T("Oui", "On")], [false, T("Non", "Off")]])) +
     `<button class="btn alt w" id="srst">${T("Réinitialiser", "Reset")}</button>`;
 }
-$("bSet").onclick = () => { panel(); open("set"); };
+$("bSet").onclick = () => { panel(); ovo("set"); };
 $("set").onclick = e => {
-  if (e.target === $("set") || e.target.closest(".x")) return shut("set");
+  if (e.target === $("set") || e.target.closest(".x")) return ovs("set");
   if (e.target.id === "srst") { S = { ...D }; save(); apply(); return panel(); }
   const b = e.target.closest("[data-k]"); if (!b) return; let v = b.dataset.v; if (v === "true" || v === "false") v = v === "true";
   S[b.dataset.k] = v; save(); apply(); panel();
@@ -95,13 +98,13 @@ addEventListener("pointerdown", e => { const b = e.target.closest(".btn,.qa"); i
 /* ---------- PAIEMENT PAYPAL ---------- */
 const payUrl = total => `https://www.paypal.com/paypalme/${encodeURIComponent(PAYPAL_USER)}/${total.toFixed(2)}`;
 document.body.insertAdjacentHTML("beforeend", '<div class="ov" id="pay"><div class="box s stack pay"><button class="x" aria-label="Fermer">✕</button><div id="payb"></div></div></div>');
-$("pay").onclick = e => { if (e.target === $("pay") || e.target.closest(".x")) shut("pay"); else if (e.target.id === "cpy") { navigator.clipboard?.writeText(e.target.dataset.r); toast(T("Référence copiée", "Reference copied"), "ok", 1800); } };
+$("pay").onclick = e => { if (e.target === $("pay") || e.target.closest(".x")) ovs("pay"); else if (e.target.id === "cpy") { navigator.clipboard?.writeText(e.target.dataset.r); toast(T("Référence copiée", "Reference copied"), "ok", 1800); } };
 function showPay(ref, total) {
   $("payb").innerHTML = `<h2>${T("Paiement PayPal", "PayPal payment")}</h2><div class="code" style="font-size:30px">${euro(total)}</div><p class="mut">${T("Commande enregistrée. Référence", "Order saved. Reference")} : <b style="color:var(--tx)">${ref}</b> <button class="pill" id="cpy" data-r="${ref}">${T("Copier", "Copy")}</button></p>
   <a class="btn w" id="ppl" target="_blank" rel="noopener" href="${payUrl(total)}">${T("Payer", "Pay")} ${euro(total)} ${T("avec PayPal", "with PayPal")}</a>
   <ol class="mut" style="font-size:13px"><li>${T("Si tu paies par carte : installe PayPal et crée un compte.", "Paying by card: install PayPal and create an account.")}</li><li>${T("Ajoute ta carte dans ton portefeuille PayPal.", "Add your card to your PayPal wallet.")}</li><li>${T("Valide le montant exact et écris la référence dans la note.", "Confirm the exact amount and write the reference in the note.")}</li></ol>
   <p class="mut" style="font-size:12px">${T("Ta commande est traitée dès que le paiement est reçu.", "Your order is processed once payment is received.")}</p>`;
-  open("pay"); confetti();
+  ovo("pay"); confetti();
 }
 order = async function () {
   if (!cart.length) return;
@@ -128,5 +131,5 @@ new MutationObserver(() => $$("#do button[data-s]:not([data-x])").forEach(async 
 })).observe($("do"), { childList: true, subtree: true });
 $("dash").addEventListener("click", async e => { const b = e.target.closest("[data-paid]"); if (!b) return; try { await db.doc("orders/" + b.dataset.paid).update({ paid: true }); b.parentElement.querySelector("small").textContent = "✅ payée"; b.remove(); toast("Paiement confirmé ✓", "ok"); } catch (x) { toast(fbErr(x), "ko", 8000); } });
 
-apply(); deco();
+apply(); deco(); console.log("extras.js chargé");
 })();
