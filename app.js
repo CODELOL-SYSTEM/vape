@@ -20,78 +20,72 @@ const euro = n => n.toFixed(2).replace(".", ",") + " €";
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const norm = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-/* ===== PRODUITS ===== */
-const FL = ["Berry Passion Tangy Fizz","Black Dragon Ice","Blackberry Red Raspberry","Blue Razz Cherry","Blue Razz Ice","Blueberry Kiwi","Blueberry Pomegranate Ice","Blueberry Raspberry Cherry","Blueberry Red Raspberry","Cherry","Cherry Berry","Cherry Lemon","Cherry Strawberry Raspberry","Cherry Watermelon Freeze","Cola Ice","Dragon Fruit","Fabublue","Fizzy Cherry Cola","Fizzy Strawberry Strips","Fresh Strawberry","Frosted Mint Burst","Grapefruit Lemonade Ice","Green Apple Peach Pear","Hawaii","Hubba Bubba Strawberry","Juicy Peaches","Kiwi Passion Fruit Guava","Love 66","Mango Passion Fruit","Mi Amor","Peach Berry","Raspberry Rhubarb","Red Punch","Sakura Grape","Sour Cherry Gummy","Sparkling Cherry","Strawberry Apple Pear","Strawberry Banana","Strawberry Ice","Strawberry Kiwi","Strawberry Pinacolada","Strawberry Red Bull","Strawberry Watermelon Ice","Summer Peach Ice","Tiger Blood","Tropicana Zest","VC Boost","Watermelon Mango Peach","White Peach Razz","Zesty Marmalade Crunch"];
-const U = "https://jnr16k.fr/wp-content/uploads/2026/07/JNR-Falcon-16K-Showcase-";
-const TIPS = {
-  Puffs: "Préférez un modèle à faible taux de nicotine (ou 0 mg) et fixez-vous une limite de bouffées par jour.",
-  "E-liquides": "Les e-liquides en 3 ou 6 mg sont plus doux que les 20 mg des jetables ; baissez progressivement.",
-  Kits: "Un kit rechargeable est plus économique et réduit les déchets par rapport aux jetables.",
-  Chicha: "La chicha classique brûle du charbon (monoxyde de carbone). Les alternatives électroniques évitent la combustion.",
-  Accessoires: "Changez vos résistances/coton régulièrement pour une vape plus propre."
-};
-const P = [{ id: "jnr-falcon-16k", name: "JNR Falcon 16K", cat: "Puffs", price: 12.9, tiers: { 3: 36.38, 5: 58.05, 10: 108.36 }, flav: FL, tag: "🔥 Best-seller",
-  img: ["Main", "01", "02", "03", "04", "05", "06", "07"].map(s => U + s + ".webp").concat("https://jnr16k.fr/wp-content/uploads/2026/06/jnr-falcon-16k-emballer.webp"),
-  video: "https://jnr16k.fr/wp-content/uploads/2026/06/JNR-Falcon-16K-Showcase.mp4", emoji: "💨",
-  desc: "Puffs rechargeable jusqu'à 16 000 bouffées, écran de contrôle, 48 saveurs au choix. Choisissez votre goût dans la liste déroulante.", alt: "kit-pod-debutant" }];
-// Lignes à variantes : [nom, catégorie, prix, emoji, nb goûts, décalage, description]
-[["Elfbar BC5000","Puffs",9.9,"💨",12,0],["Lost Mary BM600","Puffs",6.9,"💨",12,4],["Geek Bar Pulse 15K","Puffs",12.5,"💨",12,9],["Vozol Star 20K","Puffs",13.9,"💨",12,14],["Puff Flex 2800","Puffs",8.5,"💨",10,20],["Crystal Pro Max 4000","Puffs",8.9,"💨",10,26],["Puffmi Max 9K","Puffs",10.9,"💨",10,31],["Liquideo Fruits 50ml","E-liquides",8.9,"🧪",12,2],["Fuu Shortfill 50ml","E-liquides",9.5,"🧪",10,12],["Sels de nicotine 10ml","E-liquides",3.9,"🧪",12,18],["Base 0 mg DIY 100ml","E-liquides",12.9,"🧪",6,22],["Chicha électronique Fumytech","Chicha",14.9,"🌫️",10,3],["Pods Vuse compatibles ×2","Accessoires",6.5,"🔋",8,10],["Pods Aspire Vilter ×2","Accessoires",7.9,"🔋",8,16]]
-  .forEach(([name, cat, price, emoji, n, o]) => P.push({ id: norm(name).replace(/\W+/g, "-"), name, cat, price, emoji, flav: Array.from({ length: n }, (_, i) => FL[(o + i) % FL.length]), img: [], tiers: { 3: +(price * 3 * .94).toFixed(2), 5: +(price * 5 * .9).toFixed(2), 10: +(price * 10 * .85).toFixed(2) }, desc: `${name} : qualité constante, ${n} saveurs, livraison rapide. Description détaillée à personnaliser.`, alt: cat === "Puffs" ? "base-0-mg-diy-100ml" : null }));
-// Produits simples (sans goût)
-[["Kit Pod Débutant 800 mAh","Kits",19.9,"🔌"],["Kit Aspire Vilter Pro","Kits",24.9,"🔌"],["Kit Vaporesso Xros 3","Kits",27.9,"🔌"],["Kit Smok Novo 5","Kits",22.9,"🔌"],["Kit Geekvape Wenax","Kits",25.9,"🔌"],["Kit Innokin Endura T18","Kits",21.9,"🔌"],["Résistances Xros ×4","Accessoires",9.9,"🔧"],["Coton Cotton Bacon","Accessoires",5.9,"🔧"],["Câble USB-C charge rapide","Accessoires",3.9,"🔌"],["Pack 5 Pods Xros","Accessoires",11.9,"🔋"],["Tuyau chicha silicone","Chicha",9.9,"🌫️"],["Chicha complète 45 cm","Chicha",39.9,"🌫️"],["Charbon naturel 1 kg","Chicha",7.9,"🌫️"],["Cheminée chicha alu","Chicha",5.9,"🌫️"],["Embout chicha ×5","Chicha",4.9,"🌫️"]]
-  .forEach(([name, cat, price, emoji]) => P.push({ id: norm(name).replace(/\W+/g, "-"), name, cat, price, emoji, flav: null, img: [], tiers: { 3: +(price * 3 * .95).toFixed(2), 5: +(price * 5 * .92).toFixed(2), 10: +(price * 10 * .88).toFixed(2) }, desc: `${name} : description à personnaliser.` }));
-P.forEach(p => p.tip = p.tip || TIPS[p.cat]);
-const HOT = new Set(["Black Dragon Ice","Blueberry Kiwi","Cherry Watermelon Freeze","Fizzy Cherry Cola","Grapefruit Lemonade Ice","Hubba Bubba Strawberry","Juicy Peaches","Love 66","Mi Amor","Sour Cherry Gummy","Sparkling Cherry","Strawberry Apple Pear","Summer Peach Ice","Tiger Blood","Tropicana Zest"]);
-const ALT = { Puffs: "kit-pod-debutant-800-mah", "E-liquides": "base-0-mg-diy-100ml", Chicha: "chicha-electronique-fumytech" };
-P.forEach(p => { p.alt = ALT[p.cat] && ALT[p.cat] !== p.id ? ALT[p.cat] : null; });
+/* ===== PRODUITS (puffs uniquement, tous 20 mg de nicotine) ===== */
+const E = "https://www.ecigplanete.com/", Lp = "https://cdn.lepetitfumeur.fr/";
+const AEROX_PRICE = 13.9; // ⚠️ prix non donné : à corriger
+const P = [
+  { id: "falcon-x-28000", name: "JNR Falcon X 28000", price: 12.4, tag: "🔥 Best-seller",
+    flav: ["Watermelon Ice", "Blueberry Sour Raspberry", "Strawberry Watermelon Ice", "Cherry Ice", "Peach Berry", "Black Dragon Ice", "Mixed Berries", "Fizzy Cherry Cola", "Watermelon Mango Peach", "Blueberry Raspberry Cherry", "Mango Passion Fruit", "Blackberry Red Raspberry", "Blueberry Pomegranate Ice", "Strawberry Kiwi", "Watermelon Bubble Gum", "Cherry Watermelon Freeze", "Luv 66", "Golden Dragon Ice"],
+    img: [40787, 40795, 40786, 40788, 40789, 40790, 40791, 40792, 40793, 40794, 41876, 41877, 41878, 41879, 41880, 43265, 43266, 561365].map(i => `${E}${i}-large_default/puff-falcon-x-28000-jnr.jpg`),
+    desc: "20 mg de nicotine · 28 000 bouffées · 950 mAh · Dual Mesh 1,2 ohm · Rechargeable · 22 ml." },
+  { id: "joker-24k", name: "JNR Joker 24K", price: 12.9,
+    flav: ["Cola", "Cerise", "Fraise"],
+    img: ["https://www.eliquidandco.com/37636-thickbox_default/fizzy-cherry-cola.jpg", "https://www.eliquidandco.com/37907-large_default/mixed-berries-50ml.jpg", "https://www.eliquidandco.com/38519-large_default/fizzy-cherry-cola.jpg"],
+    desc: "20 mg de nicotine · 24 000 bouffées · 3 goûts au choix." },
+  { id: "aerox-32k", name: "JNR AeroX 32K", price: AEROX_PRICE,
+    flav: ["Watermelon Ice", "Strawberry Ice", "Peach Berry", "Black Dragon Ice", "Mixed Berries", "Summer Peach Ice", "Passion Fruit Kiwi", "Watermelon Mango Peach", "Watermelon Bubble Gum"],
+    img: [42178, 42168, 42169, 42170, 42171, 42172, 42173, 42174, 42175, 42176, 42177, 42179, 42180, 42181, 42182, 43595].map(i => `${E}${i}-large_default/puff-aero-x-32k-jnr.jpg`),
+    desc: "20 mg de nicotine · 32 000 bouffées · Rechargeable." },
+  { id: "falcon-gem-30k", name: "JNR Falcon Gem 30K", price: 14.9,
+    flav: null,
+    img: [...Array.from({ length: 11 }, (_, i) => 37250 + i), 38167, 38168, 38169, 40801, 40837].map(i => `${Lp}${i}-medium_default/puff-30k-falcon-gem-20-mg-jnr.jpg`),
+    desc: "20 mg de nicotine · 30 000 bouffées · Rechargeable." },
+  { id: "jnr-24k", name: "JNR 24K", price: 21.68,
+    flav: ["Watermelon Ice", "Mexican Mango", "Cherry Ice", "Blue Razz Cherry"],
+    img: ["https://puffsjnr.fr/wp-content/uploads/2025/12/jnr-24k-600x600.webp", "https://puffsjnr.fr/wp-content/uploads/2025/12/%E4%B8%BB%E5%9B%BE2-1-600x600.webp", "https://puffsjnr.fr/wp-content/uploads/2025/12/%E4%B8%BB%E5%9B%BE4-1-600x600.webp", "https://puffsjnr.fr/wp-content/uploads/2025/12/jnr-24000-puffs-600x600.webp"],
+    desc: "20 mg de nicotine · 24 000 bouffées · 4 goûts au choix." }
+];
+P.forEach(p => { p.emoji = "💨"; p.tiers = { 3: +(p.price * 3 * .94).toFixed(2), 5: +(p.price * 5 * .9).toFixed(2), 10: +(p.price * 10 * .85).toFixed(2) }; });
 const byId = id => P.find(p => p.id === id);
 
 /* ===== ÉTAT ===== */
-let vstatus = "", cat = "Tous", cart = JSON.parse(store.get("cart") || "[]"), user = null, verified = false, cur = null, qty = 1, vcode = "";
-const hue = s => [...s].reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
-const ph = (p, big) => p.img[0] ? `style="background-image:url('${p.img[0]}')"` : `style="background:linear-gradient(135deg,hsl(${hue(p.name)},70%,35%),hsl(${hue(p.name) + 50},70%,20%))"`;
+let vstatus = "", cart = JSON.parse(store.get("cart") || "[]").filter(l => byId(l.id)), user = null, verified = false, cur = null, qty = 1, vcode = "";
+const ph = p => `style="background-image:url('${p.img[0]}')"`;
 const open = id => $(id).classList.add("on"), shut = id => $(id).classList.remove("on");
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => b.closest(".ov").classList.remove("on"));
 
 /* ===== ÂGE & COOKIES ===== */
-function white0() { document.body.innerHTML = '<div style="position:fixed;inset:0;background:#fff;color:#111;display:grid;place-items:center;font:600 26px system-ui;text-align:center;padding:20px">Revenez quand vous serez plus âgé.</div>'; setTimeout(() => location.replace("about:blank"), 3000); throw 0; }
-try { if (sessionStorage.getItem("minor")) { white0(); } } catch {}
-if (store.get("age18") === "1") $("age").remove();
-$("ageYes").onclick = () => { store.set("age18", "1"); $("age").remove(); };
 const white = () => { document.body.innerHTML = '<div style="position:fixed;inset:0;background:#fff;color:#111;display:grid;place-items:center;font:600 26px system-ui;text-align:center;padding:20px">Revenez quand vous serez plus âgé.</div>'; setTimeout(() => location.replace("about:blank"), 3000); };
-$("ageNo").onclick = () => { try { sessionStorage.setItem("minor", "1"); } catch {} white(); };
-if (!store.get("cookies")) $("cookie").style.display = "flex";
-$("ck1").onclick = () => { store.set("cookies", "yes"); $("cookie").style.display = "none"; };
-$("ck0").onclick = () => { store.set("cookies", "no"); $("cookie").style.display = "none"; };
+try { if (sessionStorage.getItem("minor")) { white(); throw 0; } } catch {}
+if (store.get("age18") === "1") $("age")?.remove();
+$("ageYes") && ($("ageYes").onclick = () => { store.set("age18", "1"); $("age").remove(); });
+$("ageNo") && ($("ageNo").onclick = () => { try { sessionStorage.setItem("minor", "1"); } catch {} white(); });
+if ($("cookie") && !store.get("cookies")) $("cookie").style.display = "flex";
+$("ck1") && ($("ck1").onclick = () => { store.set("cookies", "yes"); $("cookie").style.display = "none"; });
+$("ck0") && ($("ck0").onclick = () => { store.set("cookies", "no"); $("cookie").style.display = "none"; });
 
 /* ===== CATALOGUE ===== */
-const cats = ["Tous", ...new Set(P.map(p => p.cat))];
 function render() {
-  $("chips").innerHTML = cats.map(c => `<button class="chip ${c === cat ? "on" : ""}" data-c="${c}">${c}</button>`).join("");
-  document.querySelectorAll("[data-c]").forEach(b => b.onclick = () => { cat = b.dataset.c; render(); });
   const q = norm($("q").value);
-  let l = P.filter(p => (cat === "Tous" || p.cat === cat) && (!q || norm(p.name + " " + (p.flav || []).join(" ")).includes(q)));
+  let l = P.filter(p => !q || norm(p.name + " " + (p.flav || []).join(" ")).includes(q));
   if ($("sort").value) l.sort((a, b) => $("sort").value === "a" ? a.price - b.price : b.price - a.price);
-  const variants = l.reduce((s, p) => s + (p.flav ? p.flav.length : 1), 0);
-  $("count").textContent = `${l.length} produits · ${variants} références`;
-  $("grid").innerHTML = l.map(p => `<div class="card" data-id="${p.id}"><div class="ph" ${ph(p)}>${p.img[0] ? "" : p.emoji}</div>${p.tag ? `<span class="tag">${p.tag}</span>` : ""}<div class="in"><small>${p.cat}${p.flav ? " · " + p.flav.length + " goûts" : ""}</small><h3>${esc(p.name)}</h3><div class="price">${euro(p.price)}</div></div></div>`).join("");
+  $("count").textContent = `${l.length} puffs · 20 mg nicotine`;
+  $("grid").innerHTML = l.map(p => `<div class="card" data-id="${p.id}"><div class="ph" ${ph(p)}></div>${p.tag ? `<span class="tag">${p.tag}</span>` : ""}<div class="in"><small>Puff${p.flav ? " · " + p.flav.length + " goûts" : ""}</small><h3>${esc(p.name)}</h3><div class="price">${euro(p.price)}</div></div></div>`).join("");
   document.querySelectorAll(".card").forEach(c => c.onclick = () => showP(c.dataset.id));
 }
 $("q").oninput = $("sort").onchange = render;
 
 function showP(id) {
   cur = byId(id); qty = 1;
-  const p = cur, alt = p.alt && byId(p.alt);
-  $("pmb").innerHTML = `<div class="pm"><div><div class="main" id="mn" ${ph(p)}>${p.img[0] ? "" : p.emoji}</div>${p.img.length > 1 ? `<div class="th">${p.img.map(u => `<div data-u="${u}" style="background-image:url('${u}')"></div>`).join("")}</div>` : ""}${p.video ? `<video src="${p.video}" controls muted playsinline></video>` : ""}</div>
-  <div class="stack"><small class="mut">${p.cat}</small><h2>${esc(p.name)}</h2><div class="price" style="font-size:28px">${euro(p.price)} <small class="mut" style="font-size:12px">TTC</small></div><p class="mut">${esc(p.desc)}</p>
-  ${p.flav ? `<label>Goût<select id="fv">${p.flav.map(f => `<option value="${esc(f)}">${esc(f)}${HOT.has(f) ? " 🔥" : ""}</option>`).join("")}</select></label>` : ""}
-  <div class="tiers" id="tr">${[[1, p.price], [3, p.tiers[3]], [5, p.tiers[5]], [10, p.tiers[10]]].map(([n, t]) => `<div class="tier ${n === 1 ? "on" : ""}" data-n="${n}"><b>×${n}</b><br>${euro(t)}<br><small class="mut">${euro(t / n)}/u</small></div>`).join("")}</div>
-  <div class="tip">💚 <b>Conseil santé :</b> ${esc(p.tip || "")}${alt ? `<br>👉 Alternative : <a href="#" id="altl" style="color:var(--acc2)">${esc(alt.name)}</a>` : ""}</div>
+  const p = cur;
+  $("pmb").innerHTML = `<div class="pm"><div><div class="main" id="mn" ${ph(p)}></div>${p.img.length > 1 ? `<div class="th">${p.img.map(u => `<div data-u="${u}" style="background-image:url('${u}')"></div>`).join("")}</div>` : ""}</div>
+  <div class="stack"><small class="mut">Puff · 20 mg nicotine</small><h2>${esc(p.name)}</h2><div class="price" style="font-size:28px">${euro(p.price)} <small class="mut" style="font-size:12px">TTC</small></div><p class="mut">${esc(p.desc)}</p>
+  ${p.flav ? `<label>Goût<select id="fv">${p.flav.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join("")}</select></label>` : ""}
+  <div class="tiers">${[[1, p.price], [3, p.tiers[3]], [5, p.tiers[5]], [10, p.tiers[10]]].map(([n, t]) => `<div class="tier ${n === 1 ? "on" : ""}" data-n="${n}"><b>×${n}</b><br>${euro(t)}<br><small class="mut">${euro(t / n)}/u</small></div>`).join("")}</div>
   <button class="btn" id="add" style="width:100%">Ajouter au panier</button></div></div>`;
   document.querySelectorAll("[data-u]").forEach(d => d.onclick = () => { $("mn").style.backgroundImage = `url('${d.dataset.u}')`; });
   document.querySelectorAll(".tier").forEach(t => t.onclick = () => { qty = +t.dataset.n; document.querySelectorAll(".tier").forEach(x => x.classList.toggle("on", x === t)); });
-  if (alt) $("altl").onclick = e => { e.preventDefault(); showP(alt.id); };
-  $("add").onclick = () => { addCart(p.id, p.flav ? $("fv").value : "", qty); shut("pm"); const a = p.alt && byId(p.alt); if (a) showSug(p, a); else { $("cart").classList.add("on"); drawCart(); } };
+  $("add").onclick = () => { addCart(p.id, p.flav ? $("fv").value : "", qty); shut("pm"); $("cart").classList.add("on"); drawCart(); };
   open("pm");
 }
 
@@ -134,8 +128,7 @@ initFb().then(() => onAuthStateChanged(auth, async u => {
   user = u; unsubs.forEach(f => f()); unsubs = [];
   $("bAcc").textContent = u ? "Déconnexion" : "Connexion";
   $("bDash").style.display = u && u.email === ADMIN_EMAIL ? "" : "none";
-  verified = false;
-  vstatus = "";
+  verified = false; vstatus = "";
   if (u) { try { const s = await getDoc(doc(db, "users", u.uid)); verified = !!(s.exists() && s.data().verified); const v = await getDoc(doc(db, "verifications", u.uid)); vstatus = v.exists() ? v.data().status : ""; } catch (e) { console.error(e); } }
 })).catch(e => console.error("Firebase:", e));
 
@@ -166,10 +159,4 @@ $("bDash").onclick = () => {
   }));
 };
 
-function showSug(p, a) {
-  $("sugb").innerHTML = `<button class="x" id="sx">✕</button><h2>💚 Un choix meilleur pour la santé</h2><p class="mut">Vous avez ajouté <b>${esc(p.name)}</b>. Nous vous conseillons plutôt :</p><div class="row"><div><b>${esc(a.name)}</b><br><small class="mut">${esc(a.tip)}</small></div><b>${euro(a.price)}</b></div><p class="mut" style="font-size:13px">Aucun produit contenant de la nicotine n'est sans risque.</p><button class="btn" id="sy" style="width:100%">Voir l'alternative</button><button class="btn alt" id="sn" style="width:100%">Non merci, voir mon panier</button>`;
-  const toCart = () => { shut("sug"); $("cart").classList.add("on"); drawCart(); };
-  $("sx").onclick = $("sn").onclick = toCart; $("sy").onclick = () => { shut("sug"); showP(a.id); };
-  open("sug");
-}
 render(); save();
