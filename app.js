@@ -1,162 +1,144 @@
-const firebaseConfig = {
-  apiKey: "AIzaSyAO3ZNx7hAFG_qH0BfeSUIMQsRfonH-LXw", authDomain: "vape-fc2ca.firebaseapp.com", projectId: "vape-fc2ca",
-  storageBucket: "vape-fc2ca.firebasestorage.app", messagingSenderId: "826171627240", appId: "1:826171627240:web:68cb55f24238a68df29b5d", measurementId: "G-SCXPMEKRRJ"
-};
+const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
+const { defineSecret } = require("firebase-functions/params");
+const admin = require("firebase-admin");
+const crypto = require("crypto");
+admin.initializeApp();
+const db = admin.firestore(), FV = admin.firestore.FieldValue, bucket = () => admin.storage().bucket();
+
+/* ================= À MODIFIER ================= */
+const DISCORD_CHANNEL = "ID_DU_SALON_PRIVE";            // clic droit sur le salon > Copier l'identifiant
+const ORDERS_CHANNEL = DISCORD_CHANNEL;                 // tu peux mettre un autre salon pour les commandes
+const ADMIN_DISCORD_IDS = ["TON_ID_DISCORD"];           // clic droit sur ton pseudo > Copier l'identifiant (qui peut cliquer les boutons)
+const SITE_URL = "https://vape-fc2ca.web.app";
+/* ============================================== */
+
+const REGION = "europe-west1";
+// Secrets : JAMAIS dans le code → firebase functions:secrets:set NOM
+const DISCORD_TOKEN = defineSecret("DISCORD_TOKEN");
+const DISCORD_PUBLIC_KEY = defineSecret("DISCORD_PUBLIC_KEY");
+const STRIPE_KEY = defineSecret("STRIPE_KEY");
+const STRIPE_WH = defineSecret("STRIPE_WH");
+
+// Prix = source de vérité côté serveur
+const CAT = { "falcon-x-28000": ["JNR Falcon X 28000", 12.4], "joker-24k": ["JNR Joker 24K", 12.9], "aerox-32k": ["JNR AeroX 32K", 13.9], "falcon-gem-30k": ["JNR Falcon Gem 30K", 14.9], "jnr-42k": ["JNR 42K", 21.68] };
 const FREE_FROM = 39, SHIPPING = 4.9;
-let auth, db, storage, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, OAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, doc, setDoc, getDoc, addDoc, collection, onSnapshot, serverTimestamp, ref, uploadBytes, getDownloadURL;
-const G = "https://www.gstatic.com/firebasejs/10.12.2/";
-async function initFb() {
-  const { initializeApp } = await import(G + "firebase-app.js");
-  const A = await import(G + "firebase-auth.js"), F = await import(G + "firebase-firestore.js"), S = await import(G + "firebase-storage.js");
-  const app = initializeApp(firebaseConfig);
-  ({ onAuthStateChanged, signInWithPopup, GoogleAuthProvider, OAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } = A);
-  ({ doc, setDoc, getDoc, addDoc, collection, onSnapshot, query, where, orderBy, updateDoc, serverTimestamp } = F);
-  ({ ref, uploadBytes, getDownloadURL } = S);
-  auth = A.getAuth(app); db = F.getFirestore(app); storage = S.getStorage(app);
-}
-const $ = id => document.getElementById(id);
-const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
-const euro = n => n.toFixed(2).replace(".", ",") + " €";
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const norm = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const unit = (price, n) => price * (n >= 10 ? .85 : n >= 5 ? .9 : n >= 3 ? .94 : 1);
+const BLOCKED_OR_DONE = ["pending", "approved", "blocked"];
 
-/* ===== PRODUITS (puffs uniquement, tous 20 mg de nicotine) ===== */
-const E = "https://www.ecigplanete.com/", Lp = "https://cdn.lepetitfumeur.fr/";
-const AEROX_PRICE = 13.9; // ⚠️ prix non donné : à corriger
-const P = [
-  { id: "falcon-x-28000", name: "JNR Falcon X 28000", price: 12.4, tag: "🔥 Best-seller",
-    flav: ["Watermelon Ice", "Blueberry Sour Raspberry", "Strawberry Watermelon Ice", "Cherry Ice", "Peach Berry", "Black Dragon Ice", "Mixed Berries", "Fizzy Cherry Cola", "Watermelon Mango Peach", "Blueberry Raspberry Cherry", "Mango Passion Fruit", "Blackberry Red Raspberry", "Blueberry Pomegranate Ice", "Strawberry Kiwi", "Watermelon Bubble Gum", "Cherry Watermelon Freeze", "Luv 66", "Golden Dragon Ice"],
-    img: [40787, 40795, 40786, 40788, 40789, 40790, 40791, 40792, 40793, 40794, 41876, 41877, 41878, 41879, 41880, 43265, 43266, 561365].map(i => `${E}${i}-large_default/puff-falcon-x-28000-jnr.jpg`),
-    desc: "20 mg de nicotine · 28 000 bouffées · 950 mAh · Dual Mesh 1,2 ohm · Rechargeable · 22 ml." },
-  { id: "joker-24k", name: "JNR Joker 24K", price: 12.9,
-    flav: ["Cola", "Cerise", "Fraise"],
-    img: ["https://www.eliquidandco.com/37636-thickbox_default/fizzy-cherry-cola.jpg", "https://www.eliquidandco.com/37907-large_default/mixed-berries-50ml.jpg", "https://www.eliquidandco.com/38519-large_default/fizzy-cherry-cola.jpg"],
-    desc: "20 mg de nicotine · 24 000 bouffées · 3 goûts au choix." },
-  { id: "aerox-32k", name: "JNR AeroX 32K", price: AEROX_PRICE,
-    flav: ["Watermelon Ice", "Strawberry Ice", "Peach Berry", "Black Dragon Ice", "Mixed Berries", "Summer Peach Ice", "Passion Fruit Kiwi", "Watermelon Mango Peach", "Watermelon Bubble Gum"],
-    img: [42178, 42168, 42169, 42170, 42171, 42172, 42173, 42174, 42175, 42176, 42177, 42179, 42180, 42181, 42182, 43595].map(i => `${E}${i}-large_default/puff-aero-x-32k-jnr.jpg`),
-    desc: "20 mg de nicotine · 32 000 bouffées · Rechargeable." },
-  { id: "falcon-gem-30k", name: "JNR Falcon Gem 30K", price: 14.9,
-    flav: null,
-    img: [...Array.from({ length: 11 }, (_, i) => 37250 + i), 38167, 38168, 38169, 40801, 40837].map(i => `${Lp}${i}-medium_default/puff-30k-falcon-gem-20-mg-jnr.jpg`),
-    desc: "20 mg de nicotine · 30 000 bouffées · Rechargeable." },
-  { id: "jnr-42k", name: "JNR 42K", price: 21.68,
-    flav: ["Watermelon Ice", "Mexican Mango", "Cherry Ice", "Blue Razz Cherry"],
-    img: ["https://puffsjnr.fr/wp-content/uploads/2025/12/jnr-24k-600x600.webp", "https://puffsjnr.fr/wp-content/uploads/2025/12/%E4%B8%BB%E5%9B%BE2-1-600x600.webp", "https://puffsjnr.fr/wp-content/uploads/2025/12/%E4%B8%BB%E5%9B%BE4-1-600x600.webp", "https://puffsjnr.fr/wp-content/uploads/2025/12/jnr-24000-puffs-600x600.webp"],
-    desc: "20 mg de nicotine · 24 000 bouffées · 4 goûts au choix." }
-];
-P.forEach(p => { p.emoji = "💨"; p.tiers = { 3: +(p.price * 3 * .94).toFixed(2), 5: +(p.price * 5 * .9).toFixed(2), 10: +(p.price * 10 * .85).toFixed(2) }; });
-const byId = id => P.find(p => p.id === id);
-
-/* ===== ÉTAT ===== */
-let vstatus = "", cart = JSON.parse(store.get("cart") || "[]").filter(l => byId(l.id)), user = null, verified = false, cur = null, qty = 1, vcode = "";
-const ph = p => `style="background-image:url('${p.img[0]}')"`;
-const open = id => $(id).classList.add("on"), shut = id => $(id).classList.remove("on");
-document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => b.closest(".ov").classList.remove("on"));
-
-/* ===== ÂGE & COOKIES ===== */
-const white = () => { document.body.innerHTML = '<div style="position:fixed;inset:0;background:#fff;color:#111;display:grid;place-items:center;font:600 26px system-ui;text-align:center;padding:20px">Revenez quand vous serez plus âgé.</div>'; setTimeout(() => location.replace("about:blank"), 3000); };
-try { if (sessionStorage.getItem("minor")) { white(); throw 0; } } catch {}
-if (store.get("age18") === "1") $("age")?.remove();
-$("ageYes") && ($("ageYes").onclick = () => { store.set("age18", "1"); $("age").remove(); });
-$("ageNo") && ($("ageNo").onclick = () => { try { sessionStorage.setItem("minor", "1"); } catch {} white(); });
-if ($("cookie") && !store.get("cookies")) $("cookie").style.display = "flex";
-$("ck1") && ($("ck1").onclick = () => { store.set("cookies", "yes"); $("cookie").style.display = "none"; });
-$("ck0") && ($("ck0").onclick = () => { store.set("cookies", "no"); $("cookie").style.display = "none"; });
-
-/* ===== CATALOGUE ===== */
-function render() {
-  const q = norm($("q").value);
-  let l = P.filter(p => !q || norm(p.name + " " + (p.flav || []).join(" ")).includes(q));
-  if ($("sort").value) l.sort((a, b) => $("sort").value === "a" ? a.price - b.price : b.price - a.price);
-  $("count").textContent = `${l.length} puffs · 20 mg nicotine`;
-  $("grid").innerHTML = l.map(p => `<div class="card" data-id="${p.id}"><div class="ph" ${ph(p)}></div>${p.tag ? `<span class="tag">${p.tag}</span>` : ""}<div class="in"><small>Puff${p.flav ? " · " + p.flav.length + " goûts" : ""}</small><h3>${esc(p.name)}</h3><div class="price">${euro(p.price)}</div></div></div>`).join("");
-  document.querySelectorAll(".card").forEach(c => c.onclick = () => showP(c.dataset.id));
-}
-$("q").oninput = $("sort").onchange = render;
-
-function showP(id) {
-  cur = byId(id); qty = 1;
-  const p = cur;
-  $("pmb").innerHTML = `<div class="pm"><div><div class="main" id="mn" ${ph(p)}></div>${p.img.length > 1 ? `<div class="th">${p.img.map(u => `<div data-u="${u}" style="background-image:url('${u}')"></div>`).join("")}</div>` : ""}</div>
-  <div class="stack"><small class="mut">Puff · 20 mg nicotine</small><h2>${esc(p.name)}</h2><div class="price" style="font-size:28px">${euro(p.price)} <small class="mut" style="font-size:12px">TTC</small></div><p class="mut">${esc(p.desc)}</p>
-  ${p.flav ? `<label>Goût<select id="fv">${p.flav.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join("")}</select></label>` : ""}
-  <div class="tiers">${[[1, p.price], [3, p.tiers[3]], [5, p.tiers[5]], [10, p.tiers[10]]].map(([n, t]) => `<div class="tier ${n === 1 ? "on" : ""}" data-n="${n}"><b>×${n}</b><br>${euro(t)}<br><small class="mut">${euro(t / n)}/u</small></div>`).join("")}</div>
-  <button class="btn" id="add" style="width:100%">Ajouter au panier</button></div></div>`;
-  document.querySelectorAll("[data-u]").forEach(d => d.onclick = () => { $("mn").style.backgroundImage = `url('${d.dataset.u}')`; });
-  document.querySelectorAll(".tier").forEach(t => t.onclick = () => { qty = +t.dataset.n; document.querySelectorAll(".tier").forEach(x => x.classList.toggle("on", x === t)); });
-  $("add").onclick = () => { addCart(p.id, p.flav ? $("fv").value : "", qty); shut("pm"); $("cart").classList.add("on"); drawCart(); };
-  open("pm");
+async function discord(payload, files = [], channel = DISCORD_CHANNEL) {
+  const fd = new FormData();
+  fd.append("payload_json", JSON.stringify(payload));
+  files.forEach((f, i) => fd.append(`files[${i}]`, new Blob([f.buf], { type: f.type }), f.name));
+  const r = await fetch(`https://discord.com/api/v10/channels/${channel}/messages`, { method: "POST", headers: { Authorization: `Bot ${DISCORD_TOKEN.value()}` }, body: fd });
+  if (!r.ok) console.error("Discord", r.status, await r.text());
+  return r.ok;
 }
 
-/* ===== PANIER ===== */
-const unit = (p, n) => n >= 10 ? p.tiers[10] / 10 : n >= 5 ? p.tiers[5] / 5 : n >= 3 ? p.tiers[3] / 3 : p.price;
-function addCart(id, flav, n) { const l = cart.find(x => x.id === id && x.flav === flav); l ? l.n += n : cart.push({ id, flav, n }); save(); }
-function save() { store.set("cart", JSON.stringify(cart)); $("cn").textContent = cart.reduce((s, l) => s + l.n, 0); }
-function totals() { const sub = cart.reduce((s, l) => { const p = byId(l.id), tot = cart.filter(x => x.id === l.id).reduce((a, x) => a + x.n, 0); return s + unit(p, tot) * l.n; }, 0); return { sub, ship: !cart.length || sub >= FREE_FROM ? 0 : SHIPPING }; }
-function drawCart() {
-  $("cl").innerHTML = cart.length ? cart.map((l, i) => `<div class="row"><div><b>${esc(byId(l.id).name)}</b><br><small class="mut">${esc(l.flav)}</small></div><button class="btn alt" data-m="${i}">−</button>${l.n}<button class="btn alt" data-p="${i}">+</button></div>`).join("") : '<p class="mut">Votre panier est vide.</p>';
-  document.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { const l = cart[b.dataset.m]; if (--l.n <= 0) cart.splice(b.dataset.m, 1); save(); drawCart(); });
-  document.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { cart[b.dataset.p].n++; save(); drawCart(); });
-  const t = totals();
-  $("ct").innerHTML = `<div class="row"><div>Sous-total</div>${euro(t.sub)}</div><div class="row"><div>Livraison</div>${t.ship ? euro(t.ship) : "Offerte"}</div><div class="row"><div><b>Total</b></div><b>${euro(t.sub + t.ship)}</b></div><button class="btn" id="ord" style="width:100%">Commander</button>`;
-  $("ord").onclick = order;
-}
-$("bCart").onclick = () => { $("cart").classList.add("on"); drawCart(); };
-$("cx").onclick = () => $("cart").classList.remove("on");
+/* 1) Code anti-fraude généré par le serveur */
+exports.startVerification = onCall({ region: REGION }, async req => {
+  if (!req.auth) throw new HttpsError("unauthenticated", "Connecte-toi d'abord.");
+  const st = (await db.doc(`verifications/${req.auth.uid}`).get()).data()?.status;
+  if (BLOCKED_OR_DONE.includes(st)) throw new HttpsError("failed-precondition", st === "blocked" ? "Compte refusé." : "Vérification déjà " + (st === "pending" ? "en cours." : "validée."));
+  const code = crypto.randomInt(1000, 10000) + Array.from({ length: 3 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ"[crypto.randomInt(24)]).join("");
+  await db.doc(`codes/${req.auth.uid}`).set({ code, at: FV.serverTimestamp() });
+  return { code };
+});
 
-async function order() {
-  if (!cart.length) return;
-  if (!user) { open("auth"); return; }
-  if (!verified && vstatus === "pending") { alert("Votre vérification est en cours : attendez la validation."); return; }
-  if (!verified && vstatus === "rejected") { alert("Votre vérification a été refusée : achat impossible."); return; }
-  if (!verified) { vcode = Math.floor(1000 + Math.random() * 9000) + Array.from({ length: 3 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ"[Math.random() * 24 | 0]).join(""); $("code").textContent = vcode; open("idv"); return; }
-  const t = totals();
-  await addDoc(collection(db, "orders"), { uid: user.uid, email: user.email, items: cart, total: +(t.sub + t.ship).toFixed(2), status: "nouvelle", createdAt: serverTimestamp() });
-  cart = []; save(); drawCart(); alert("Commande envoyée ✅ Merci !");
-}
+/* 2) Photos → salon Discord privé avec 3 boutons. Photos supprimées de Firebase aussitôt. */
+exports.submitVerification = onCall({ region: REGION, secrets: [DISCORD_TOKEN], memory: "512MiB", timeoutSeconds: 60 }, async req => {
+  if (!req.auth) throw new HttpsError("unauthenticated", "Connecte-toi d'abord.");
+  const uid = req.auth.uid, email = req.auth.token.email || "(sans email)";
+  const st = (await db.doc(`verifications/${uid}`).get()).data()?.status;
+  if (BLOCKED_OR_DONE.includes(st)) throw new HttpsError("failed-precondition", "Déjà traité.");
+  const c = (await db.doc(`codes/${uid}`).get()).data();
+  if (!c) throw new HttpsError("failed-precondition", "Demande d'abord un code.");
+  const b = bucket(), files = [];
+  for (const n of ["id", "selfie"]) {
+    const f = b.file(`verifications/${uid}/${n}`);
+    if (!(await f.exists())[0]) throw new HttpsError("failed-precondition", "Photo manquante : " + (n === "id" ? "pièce d'identité" : "selfie"));
+    const type = (await f.getMetadata())[0].contentType || "";
+    if (!type.startsWith("image/")) throw new HttpsError("invalid-argument", "Le fichier doit être une image.");
+    files.push({ buf: (await f.download())[0], type, name: `${n}.${type.split("/")[1].replace("jpeg", "jpg")}` });
+  }
+  const ok = await discord({
+    content: `🆕 **Vérification d'âge** — ${email}`,
+    embeds: [
+      { title: "🪪 Pièce d'identité", color: 0x7c5cff, image: { url: "attachment://" + files[0].name }, fields: [
+        { name: "Email", value: email, inline: true },
+        { name: "Code à retrouver sur le papier", value: "**" + c.code + "**", inline: true },
+        { name: "✅ Checklist", value: "• Le code du papier = le code ci-dessus ?\n• Le visage du selfie = la photo de la pièce ?\n• **18 ans révolus** d'après la date de naissance ?\n• Pièce valide, lisible, non retouchée ?" }] },
+      { title: "🤳 Selfie avec le papier", color: 0x00d4b4, image: { url: "attachment://" + files[1].name } }
+    ],
+    components: [{ type: 1, components: [
+      { type: 2, style: 3, label: "Accepter (18+ confirmé)", emoji: { name: "✅" }, custom_id: `v|approve|${uid}` },
+      { type: 2, style: 2, label: "Refuser (à refaire)", emoji: { name: "⚠️" }, custom_id: `v|reject|${uid}` },
+      { type: 2, style: 4, label: "Mineur / fraude", emoji: { name: "⛔" }, custom_id: `v|block|${uid}` }] }]
+  }, files);
+  if (!ok) throw new HttpsError("internal", "Envoi au salon impossible, réessaie.");
+  await b.deleteFiles({ prefix: `verifications/${uid}/`, force: true });
+  await db.doc(`verifications/${uid}`).set({ uid, email, code: c.code, status: "pending", createdAt: FV.serverTimestamp() });
+  return { ok: true };
+});
 
-/* ===== AUTH ===== */
-$("bAcc").onclick = () => user ? signOut(auth) : open("auth");
-const run = async fn => { try { await fn(); shut("auth"); } catch (e) { $("am").textContent = e.message; } };
-$("gG").onclick = () => run(() => signInWithPopup(auth, new GoogleAuthProvider()));
-$("gA").onclick = () => run(() => signInWithPopup(auth, new OAuthProvider("apple.com")));
-$("li").onclick = () => run(() => signInWithEmailAndPassword(auth, $("em").value, $("pw").value));
-$("su").onclick = () => run(() => createUserWithEmailAndPassword(auth, $("em").value, $("pw").value));
-let unsubs = [];
-initFb().then(() => onAuthStateChanged(auth, async u => {
-  user = u; unsubs.forEach(f => f()); unsubs = [];
-  $("bAcc").textContent = u ? "Déconnexion" : "Connexion";
-  $("bDash").style.display = u && u.email === ADMIN_EMAIL ? "" : "none";
-  verified = false; vstatus = "";
-  if (u) { try { const s = await getDoc(doc(db, "users", u.uid)); verified = !!(s.exists() && s.data().verified); const v = await getDoc(doc(db, "verifications", u.uid)); vstatus = v.exists() ? v.data().status : ""; } catch (e) { console.error(e); } }
-})).catch(e => console.error("Firebase:", e));
-
-/* ===== VÉRIFICATION IDENTITÉ ===== */
-$("send").onclick = async () => {
-  const a = $("f1").files[0], b = $("f2").files[0];
-  if (!a || !b) { $("vm").textContent = "Ajoutez les 2 photos."; return; }
-  $("vm").textContent = "Envoi…";
+/* 3) Discord appelle cette URL quand tu cliques un bouton (signature vérifiée) */
+exports.discordInteractions = onRequest({ region: REGION, secrets: [DISCORD_PUBLIC_KEY] }, async (req, res) => {
+  let valid = false;
   try {
-    const up = async (f, n) => { const r = ref(storage, `verifications/${user.uid}/${n}`); await uploadBytes(r, f); return getDownloadURL(r); };
-    const [idUrl, selfieUrl] = [await up(a, "id"), await up(b, "selfie")];
-    await setDoc(doc(db, "verifications", user.uid), { uid: user.uid, email: user.email, code: vcode, idUrl, selfieUrl, status: "pending", createdAt: serverTimestamp() });
-    vstatus = "pending"; $("vm").textContent = "Envoyé ✅ Vous serez averti après validation.";
-  } catch (e) { $("vm").textContent = e.message; }
-};
+    const key = crypto.createPublicKey({ key: Buffer.concat([Buffer.from("302a300506032b6570032100", "hex"), Buffer.from(DISCORD_PUBLIC_KEY.value().trim(), "hex")]), format: "der", type: "spki" });
+    valid = crypto.verify(null, Buffer.from(req.get("x-signature-timestamp") + req.rawBody), key, Buffer.from(req.get("x-signature-ed25519"), "hex"));
+  } catch (e) {}
+  if (!valid) return res.status(401).send("invalid request signature");
+  const i = req.body;
+  if (i.type === 1) return res.json({ type: 1 }); // PING
+  const eph = content => res.json({ type: 4, data: { content, flags: 64 } });
+  if (i.type !== 3 || !String(i.data?.custom_id).startsWith("v|")) return eph("Action inconnue.");
 
-/* ===== DASHBOARD ADMIN (UNIQUEMENT pc2alex.les@gmail.com) ===== */
-$("bDash").onclick = () => {
-  if (!user || user.email !== ADMIN_EMAIL) return;
-  open("dash");
-  unsubs.push(onSnapshot(query(collection(db, "verifications"), where("status", "==", "pending")), s => {
-    $("dv").innerHTML = s.empty ? '<p class="mut">Aucune demande.</p>' : s.docs.map(d => { const v = d.data(); return `<div class="row"><div><b>${esc(v.email)}</b> · code <b>${esc(v.code)}</b><br><a href="${v.idUrl}" target="_blank" style="color:var(--acc2)">Pièce d'identité</a> · <a href="${v.selfieUrl}" target="_blank" style="color:var(--acc2)">Selfie</a></div><button class="btn ok" data-a="${d.id}">Accepter</button><button class="btn ko" data-r="${d.id}">Refuser</button></div>`; }).join("");
-    document.querySelectorAll("[data-a]").forEach(b => b.onclick = async () => { await updateDoc(doc(db, "verifications", b.dataset.a), { status: "approved" }); await setDoc(doc(db, "users", b.dataset.a), { verified: true }, { merge: true }); });
-    document.querySelectorAll("[data-r]").forEach(b => b.onclick = async () => { await updateDoc(doc(db, "verifications", b.dataset.r), { status: "rejected" }); await setDoc(doc(db, "users", b.dataset.r), { verified: false }, { merge: true }); });
-  }));
-  unsubs.push(onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), s => {
-    $("do").innerHTML = s.empty ? '<p class="mut">Aucune commande.</p>' : s.docs.map(d => { const o = d.data(); return `<div class="row"><div><b>${esc(o.email)}</b> · ${euro(o.total)}<br><small class="mut">${o.items.map(i => esc(byId(i.id)?.name || i.id) + (i.flav ? " (" + esc(i.flav) + ")" : "") + " ×" + i.n).join(", ")}</small></div><span class="pill">${esc(o.status)}</span></div>`; }).join("");
-  }));
-};
+  const [, decision, uid] = i.data.custom_id.split("|"), who = i.member?.user || i.user;
+  if (!ADMIN_DISCORD_IDS.includes(who?.id)) return eph("⛔ Tu n'as pas le droit de valider.");
+  const status = { approve: "approved", reject: "rejected", block: "blocked" }[decision];
+  const ref = db.doc(`verifications/${uid}`), v = (await ref.get()).data();
+  if (!status || !v || v.status !== "pending") return eph("Déjà traité.");
 
-render(); save();
+  await ref.update({ status, decidedAt: FV.serverTimestamp(), decidedBy: who.id });
+  await db.doc(`users/${uid}`).set({ verified: status === "approved" }, { merge: true });
+  const label = { approved: "✅ ACCEPTÉ", rejected: "⚠️ REFUSÉ (peut renvoyer)", blocked: "⛔ BLOQUÉ (mineur/fraude)" }[status];
+  res.json({ type: 7, data: { content: `${i.message.content}\n\n**${label}** par <@${who.id}>`, components: [] } }); // retire les boutons, garde les photos
+});
+
+/* 4) Paiement : prix recalculés côté serveur, seulement si âge vérifié */
+exports.createCheckout = onCall({ region: REGION, secrets: [STRIPE_KEY] }, async req => {
+  if (!req.auth) throw new HttpsError("unauthenticated", "Connecte-toi d'abord.");
+  if (!(await db.doc(`users/${req.auth.uid}`).get()).data()?.verified) throw new HttpsError("permission-denied", "Âge non vérifié.");
+  const items = (req.data?.items || []).slice(0, 50);
+  if (!items.length) throw new HttpsError("invalid-argument", "Panier vide.");
+  const qty = {};
+  for (const l of items) {
+    if (!CAT[l.id] || !Number.isInteger(l.n) || l.n < 1 || l.n > 100) throw new HttpsError("invalid-argument", "Article invalide.");
+    qty[l.id] = (qty[l.id] || 0) + l.n;
+  }
+  let sub = 0; for (const l of items) sub += unit(CAT[l.id][1], qty[l.id]) * l.n;
+  const cents = Math.round((sub + (sub >= FREE_FROM ? 0 : SHIPPING)) * 100);
+  const clean = items.map(l => ({ id: l.id, flav: String(l.flav || "").slice(0, 60), n: l.n }));
+  const o = await db.collection("orders").add({ uid: req.auth.uid, email: req.auth.token.email || "", items: clean, total: cents / 100, status: "awaiting_payment", createdAt: FV.serverTimestamp() });
+  const s = await require("stripe")(STRIPE_KEY.value()).checkout.sessions.create({
+    mode: "payment", customer_email: req.auth.token.email, client_reference_id: o.id, metadata: { orderId: o.id },
+    shipping_address_collection: { allowed_countries: ["FR"] }, phone_number_collection: { enabled: true },
+    line_items: [{ quantity: 1, price_data: { currency: "eur", unit_amount: cents, product_data: { name: "Commande VAPE SHOP" } } }],
+    success_url: SITE_URL + "/?paid=1", cancel_url: SITE_URL + "/?paid=0"
+  });
+  return { url: s.url };
+});
+
+exports.stripeWebhook = onRequest({ region: REGION, secrets: [STRIPE_KEY, STRIPE_WH, DISCORD_TOKEN] }, async (req, res) => {
+  let ev;
+  try { ev = require("stripe")(STRIPE_KEY.value()).webhooks.constructEvent(req.rawBody, req.headers["stripe-signature"], STRIPE_WH.value()); } catch (e) { return res.status(400).send("bad signature"); }
+  if (ev.type === "checkout.session.completed") {
+    const s = ev.data.object, ref = db.doc(`orders/${s.metadata.orderId}`), o = (await ref.get()).data();
+    if (o && o.status === "awaiting_payment") {
+      const sh = s.collected_information?.shipping_details || s.shipping_details || {}, a = sh.address || {}, tel = s.customer_details?.phone || "";
+      await ref.update({ status: "payée", shipping: { name: sh.name || "", ...a, phone: tel } });
+      await discord({ content: `💶 **COMMANDE PAYÉE** — ${o.email} — **${o.total.toFixed(2)} €**\n` + o.items.map(i => `• ${CAT[i.id][0]}${i.flav ? " (" + i.flav + ")" : ""} ×${i.n}`).join("\n") + `\n📦 ${sh.name || ""} — ${a.line1 || ""} ${a.line2 || ""}, ${a.postal_code || ""} ${a.city || ""} — 📞 ${tel}` }, [], ORDERS_CHANNEL);
+    }
+  }
+  res.json({ received: true });
+});
