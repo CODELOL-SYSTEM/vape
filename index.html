@@ -1,151 +1,274 @@
 <!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>VAPE SHOP — Boutique 18+</title>
-<meta name="description" content="Boutique réservée aux majeurs : puffs JNR 20 mg de nicotine.">
+<title>VAPE SHOP — Puffs rechargeables · Boutique 18+</title>
+<meta name="description" content="Boutique réservée aux majeurs : puffs rechargeables JNR, 20 mg/mL de nicotine. Vérification d'âge obligatoire.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Space+Grotesk:wght@700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#07080d;--card:#121622cc;--solid:#121622;--line:#ffffff17;--tx:#f1f4fb;--mut:#8d98b4;--acc:#7c5cff;--acc2:#00d4b4;--ok:#22c55e;--ko:#ef4444;--r:20px}
+:root{--bg:#06070c;--card:#10131dd9;--solid:#10131d;--line:#ffffff17;--tx:#f1f4fb;--mut:#8d98b4;--acc:#7c5cff;--acc2:#00d4b4;--ok:#22c55e;--ko:#ef4444;--wa:#f59e0b;--r:22px}
 *{box-sizing:border-box;margin:0}html{scroll-behavior:smooth}
 body{font:15px/1.55 Inter,system-ui,sans-serif;background:var(--bg);color:var(--tx);overflow-x:hidden}
+body.lock{overflow:hidden}
+body.blocked>*:not(#minor){display:none!important}
 h1,h2,h3,.logo{font-family:"Space Grotesk",Inter,system-ui,sans-serif}
 button,select,input{font:inherit;color:inherit}button{cursor:pointer;border:0;background:none}
 svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.mut{color:var(--mut)}.stack>*+*{margin-top:12px}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.rv{opacity:1}}
+.mut{color:var(--mut)}.stack>*+*{margin-top:12px}em{font-style:normal}
+section,[id]{scroll-margin-top:84px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.rv,.ln>span{opacity:1!important;transform:none!important}}
 
-/* fond animé */
+/* progression + fond */
+#prog{position:fixed;left:0;top:0;height:3px;width:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));transform:scaleX(0);transform-origin:left;z-index:120}
 .bgfx{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
-.blob{position:absolute;width:55vmax;height:55vmax;border-radius:50%;filter:blur(90px);opacity:.3;animation:drift 20s ease-in-out infinite alternate}
+.blob{position:absolute;width:55vmax;height:55vmax;border-radius:50%;filter:blur(90px);opacity:.28;animation:drift 20s ease-in-out infinite alternate}
 .blob.a{background:var(--acc);top:-20vmax;left:-15vmax}.blob.b{background:var(--acc2);bottom:-25vmax;right:-15vmax;animation-delay:-8s}
 @keyframes drift{to{transform:translate(8vmax,6vmax) scale(1.2)}}
 .bgfx i{position:absolute;bottom:-20px;width:8px;height:8px;border-radius:50%;background:var(--acc2);opacity:0;animation:up 12s linear infinite}
 @keyframes up{10%{opacity:.7}to{transform:translateY(-110vh) translateX(40px);opacity:0}}
-#glow{position:fixed;left:-220px;top:-220px;width:440px;height:440px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--acc) 22%,transparent),transparent 65%);pointer-events:none;z-index:0;transition:transform .12s linear}
+#glow{position:fixed;left:-220px;top:-220px;width:440px;height:440px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--acc) 20%,transparent),transparent 65%);pointer-events:none;z-index:0}
+@media(hover:none){#glow{display:none}}
 
 /* boutons / champs */
-.btn{background:linear-gradient(135deg,var(--acc),color-mix(in srgb,var(--acc) 55%,#5b8cff));color:#fff;padding:11px 20px;border-radius:14px;font-weight:600;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;box-shadow:0 8px 26px -10px var(--acc)}
-.btn:hover{transform:translateY(-3px) scale(1.03);box-shadow:0 16px 34px -10px var(--acc)}.btn:active{transform:scale(.96)}
+.btn{background:linear-gradient(135deg,var(--acc),color-mix(in srgb,var(--acc) 55%,#5b8cff));color:#fff;padding:12px 22px;border-radius:14px;font-weight:600;position:relative;overflow:hidden;transition:transform .2s,box-shadow .25s;box-shadow:0 8px 26px -10px var(--acc);text-decoration:none;display:inline-block;text-align:center}
+.btn:not(.mag):hover{transform:translateY(-3px) scale(1.03);box-shadow:0 16px 34px -10px var(--acc)}.btn:active{transform:scale(.96)!important}
 .btn::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,#fff5 50%,transparent 70%);transform:translateX(-120%);transition:transform .6s}.btn:hover::after{transform:translateX(120%)}
-.btn.alt{background:var(--card);border:1px solid var(--line);box-shadow:none}.btn.w{width:100%}.btn[disabled]{opacity:.5;pointer-events:none}
-.ib{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:var(--card);border:1px solid var(--line);position:relative;transition:.25s}.ib:hover{border-color:var(--acc);transform:translateY(-3px) rotate(-6deg)}
-input,select{background:#0e121b;border:1px solid var(--line);border-radius:12px;padding:11px 13px;width:100%;outline:0;transition:.2s}input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 25%,transparent)}
+.btn.alt{background:var(--card);border:1px solid var(--line);box-shadow:none}.btn.w{width:100%}.btn[disabled]{opacity:.45;pointer-events:none}
+.btn.load::before{content:"";position:absolute;left:16px;top:50%;width:16px;height:16px;margin-top:-8px;border:2px solid #fff6;border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lnk{color:var(--mut);font-size:13px;text-decoration:underline;display:block;margin:10px auto 0}.lnk:hover{color:var(--tx)}
+.ib{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:var(--card);border:1px solid var(--line);position:relative;transition:.25s;flex:none}.ib:hover{border-color:var(--acc);transform:translateY(-3px) rotate(-6deg)}
+.ib.shake{animation:shake .5s}@keyframes shake{25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
+input,select{background:#0b0e16;border:1px solid var(--line);border-radius:12px;padding:11px 13px;width:100%;outline:0;transition:.2s}input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 25%,transparent)}
 label{display:block;font-size:13px;color:var(--mut)}label>input,label>select{margin-top:5px;color:var(--tx)}
+.err{color:var(--ko);font-size:13px;min-height:18px}
 
 /* header */
 .promo{background:linear-gradient(90deg,var(--acc),var(--acc2),var(--acc));background-size:200%;animation:shine 6s linear infinite;text-align:center;font-size:13px;padding:7px;font-weight:600;color:#fff}
-header{position:sticky;top:0;z-index:30;background:#07080dcc;backdrop-filter:blur(16px) saturate(1.4);border-bottom:1px solid var(--line)}
+header{position:sticky;top:0;z-index:30;background:#06070cb3;backdrop-filter:blur(16px) saturate(1.4);border-bottom:1px solid var(--line);transition:.3s}header.sc{background:#06070cee}
 .bar{max-width:1280px;margin:auto;padding:12px 20px;display:flex;gap:12px;align-items:center}
-.logo{font-weight:800;font-size:22px;letter-spacing:.5px}.logo b{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
-.sr{margin-left:auto;max-width:360px;position:relative;flex:1}.sr input{padding-left:38px}.sr svg{position:absolute;left:12px;top:12px;color:var(--mut)}
-.chip{font-size:12px;padding:5px 11px;border-radius:99px;background:var(--card);border:1px solid var(--line);white-space:nowrap;cursor:pointer}.chip.ok{color:var(--ok);border-color:var(--ok)}.chip.wa{color:#f59e0b;border-color:#f59e0b}.chip.ko{color:var(--ko);border-color:var(--ko)}
-#cn{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;border-radius:99px;background:var(--acc2);color:#04130f;font-size:11px;font-weight:800;display:grid;place-items:center;padding:0 5px}#cn.pop{animation:pop .4s}@keyframes pop{50%{transform:scale(1.7)}}
+.logo{font-weight:800;font-size:22px;letter-spacing:.5px;color:var(--tx);text-decoration:none}.logo b{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+nav{display:flex;gap:4px;margin-left:24px}nav a{color:var(--mut);text-decoration:none;padding:8px 12px;border-radius:10px;position:relative;transition:.2s}nav a:hover{color:var(--tx);background:var(--line)}
+.sp{flex:1}
+.chip{font-size:12px;padding:5px 11px;border-radius:99px;background:var(--card);border:1px solid var(--line);white-space:nowrap;cursor:pointer}.chip.ok{color:var(--ok);border-color:var(--ok)}.chip.wa{color:var(--wa);border-color:var(--wa)}.chip.ko{color:var(--ko);border-color:var(--ko)}
+#cn{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;border-radius:99px;background:var(--acc2);color:#04130f;font-size:11px;font-weight:800;display:grid;place-items:center;padding:0 5px}#cn.pop{animation:pop .45s}@keyframes pop{50%{transform:scale(1.8)}}
+#burger{display:none}
+.menu{display:none}
+@media(max-width:820px){nav{display:none}#burger{display:grid}.menu.on{display:flex;flex-direction:column;padding:8px 20px 16px;border-top:1px solid var(--line);animation:fade .25s}.menu a{padding:12px 0;color:var(--tx);text-decoration:none;border-bottom:1px solid var(--line)}}
 
 /* hero */
-.hero{max-width:1280px;margin:20px auto 0;padding:30px 20px;display:grid;grid-template-columns:1.05fr 1fr;gap:20px;align-items:center}
-.hero h1{font-size:clamp(34px,5.4vw,66px);line-height:1.03;letter-spacing:-1.5px}
+.hero{max-width:1280px;margin:10px auto 0;padding:30px 20px;display:grid;grid-template-columns:1fr 1.05fr;gap:10px;align-items:center}
+.hl{will-change:transform}
+.hero h1{font-size:clamp(36px,5.6vw,72px);line-height:1.02;letter-spacing:-1.5px}
+.ln{display:block;overflow:hidden;padding-bottom:.1em}.ln>span{display:inline-block;transform:translateY(115%) rotate(5deg);opacity:0}
+body.go .ln>span{animation:lnin 1s cubic-bezier(.2,.9,.2,1) calc(var(--i)*.14s + .15s) forwards}
+@keyframes lnin{to{transform:none;opacity:1}}
 .grad{background:linear-gradient(100deg,var(--acc),var(--acc2),var(--acc));background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 5s linear infinite}@keyframes shine{to{background-position:200% center}}
-.hero p{color:var(--mut);margin:16px 0 24px;max-width:520px;font-size:17px}
-.pill{display:inline-flex;gap:6px;align-items:center;padding:5px 13px;border-radius:99px;font-size:12px;background:var(--card);border:1px solid var(--line);margin-bottom:16px}.pill i{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok);animation:blink 1.6s infinite}@keyframes blink{50%{opacity:.3}}
-.stats{display:flex;gap:26px;margin-top:34px}.stats b{font:800 28px "Space Grotesk";display:block}.stats span{font-size:12px;color:var(--mut)}
-
-/* scène 3D : puff qui tourne */
-.stage{position:relative;height:min(560px,70vw);min-height:340px;perspective:1100px;display:grid;place-items:center}
-.scene{transform-style:preserve-3d;transition:transform .15s ease-out}
-.dev,.stage3 .dev{--h:265;position:relative;width:120px;height:300px;transform-style:preserve-3d;animation:spin 10s linear infinite,bob 4s ease-in-out infinite}
-.dev i{position:absolute;inset:0;border-radius:26px;background:linear-gradient(160deg,hsl(var(--h) 90% 62%),hsl(calc(var(--h) + 50) 85% 38%));box-shadow:inset 0 0 40px #0008,0 0 60px -10px hsl(var(--h) 90% 55%);border:1px solid #fff3}
-.dev i::before{content:"";position:absolute;left:22%;top:10%;width:14%;height:80%;border-radius:99px;background:linear-gradient(#fff6,transparent)}
-.dev i::after{content:"JNR";position:absolute;bottom:14%;left:0;right:0;text-align:center;font:800 22px "Space Grotesk";letter-spacing:3px;color:#fffd}
-.dev i:nth-child(1){transform:translateZ(60px)}.dev i:nth-child(2){transform:rotateY(90deg) translateZ(60px)}.dev i:nth-child(3){transform:rotateY(180deg) translateZ(60px)}.dev i:nth-child(4){transform:rotateY(270deg) translateZ(60px)}
-@keyframes spin{to{transform:rotateY(360deg)}}@keyframes bob{50%{margin-top:-18px}}
-.ring{position:absolute;left:50%;top:50%;width:380px;height:380px;margin:-190px;border-radius:50%;border:2px dashed color-mix(in srgb,var(--acc2) 50%,transparent);transform:rotateX(75deg) translateZ(-120px);animation:ringspin 14s linear infinite}
-.ring.r2{width:480px;height:480px;margin:-240px;border-color:color-mix(in srgb,var(--acc) 55%,transparent);animation-direction:reverse}
-@keyframes ringspin{to{transform:rotateX(75deg) translateZ(-120px) rotateZ(360deg)}}
-.floor{position:absolute;left:-10%;right:-10%;bottom:-6%;height:46%;background:linear-gradient(var(--line) 1px,transparent 1px) 0 0/100% 40px,linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 0/60px 100%;transform:rotateX(68deg);transform-origin:bottom;mask:linear-gradient(transparent,#000 70%);-webkit-mask:linear-gradient(transparent,#000 70%);animation:grid 3s linear infinite;pointer-events:none}
-@keyframes grid{to{background-position:0 40px,0 0}}
+.hero p.sub{color:var(--mut);margin:18px 0 26px;max-width:520px;font-size:17px}
+.pill{display:inline-flex;gap:7px;align-items:center;padding:5px 13px;border-radius:99px;font-size:12px;background:var(--card);border:1px solid var(--line);margin-bottom:16px}.pill i{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok);animation:blink 1.6s infinite}@keyframes blink{50%{opacity:.3}}
+.stats{display:flex;gap:30px;margin-top:36px}.stats b{font:800 30px "Space Grotesk";display:block}.stats span{font-size:12px;color:var(--mut)}
+.stage{position:relative;height:min(620px,80vw);min-height:380px}
+.hero3d{position:absolute;inset:0}.hero3d canvas{width:100%!important;height:100%!important;display:block;cursor:grab;touch-action:pan-y}
+.fl{position:absolute;padding:8px 14px;border-radius:99px;font-size:13px;font-weight:600;background:var(--card);border:1px solid var(--line);backdrop-filter:blur(10px);pointer-events:none;animation:float 5s ease-in-out infinite;box-shadow:0 14px 40px -14px #000}
+.fl.f1{left:2%;top:18%}.fl.f2{right:2%;top:30%;animation-delay:-1.6s}.fl.f3{left:10%;bottom:16%;animation-delay:-3s}
+@keyframes float{50%{transform:translateY(-14px)}}
+.hint{position:absolute;left:0;right:0;bottom:6px;text-align:center;font-size:12px;color:var(--mut);pointer-events:none;animation:blink 3s infinite}
+.mini.big{width:120px;height:300px;margin:60px auto;animation:tilt 5s ease-in-out infinite}
+@media(max-width:820px){.hero{grid-template-columns:minmax(0,1fr)}.stage{order:-1;min-height:320px}.fl.f1,.fl.f3{display:none}}
 
 /* marquee */
-.mq{overflow:hidden;border-block:1px solid var(--line);margin:34px 0;background:var(--card);mask:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);-webkit-mask:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent)}
+.mq{overflow:hidden;border-block:1px solid var(--line);margin:30px 0;background:var(--card);mask:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);-webkit-mask:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent)}
 .mq div{display:flex;gap:44px;width:max-content;padding:13px 0;animation:mq 40s linear infinite;color:var(--mut);font-weight:600;white-space:nowrap}.mq:hover div{animation-play-state:paused}@keyframes mq{to{transform:translateX(-50%)}}
 
 /* sections */
-.wrap{max-width:1280px;margin:auto;padding:0 20px 60px}
-.feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;perspective:1200px;margin-bottom:46px}
-.feat{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:24px;transform-style:preserve-3d;transition:transform .2s ease-out,border-color .3s;backdrop-filter:blur(8px)}.feat:hover{border-color:var(--acc2)}
-.feat .ic{font-size:34px;transform:translateZ(40px);display:inline-block;animation:floaty 4s ease-in-out infinite}.feat h3{transform:translateZ(26px);margin:8px 0 4px}.feat p{color:var(--mut);transform:translateZ(14px);font-size:14px}
-@keyframes floaty{50%{transform:translateZ(40px) translateY(-8px) rotate(6deg)}}
-.sec{display:flex;align-items:end;gap:14px;flex-wrap:wrap;margin-bottom:16px}.sec h2{font-size:30px}.sec select{width:auto;margin-left:auto}
+.wrap{max-width:1280px;margin:auto;padding:0 20px 50px}
+.feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;perspective:1200px;margin-bottom:56px}
+.feat,.card{transform:perspective(900px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transform-style:preserve-3d;transition:transform .15s ease-out,border-color .3s,box-shadow .3s}
+.feat{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:24px}.feat:hover{border-color:var(--acc2)}
+.feat .ic{font-size:36px;transform:translateZ(44px);display:inline-block;animation:floaty 4s ease-in-out infinite}.feat h3{transform:translateZ(28px);margin:8px 0 4px}.feat p{color:var(--mut);transform:translateZ(14px);font-size:14px}
+@keyframes floaty{50%{transform:translateZ(44px) translateY(-8px) rotate(6deg)}}
+.sec{display:flex;align-items:end;gap:14px;flex-wrap:wrap;margin-bottom:14px}.sec h2{font-size:32px;position:relative}.sec h2::after{content:"";position:absolute;left:0;bottom:-6px;height:3px;width:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:3px;transform:scaleX(0);transform-origin:left;transition:transform .9s .2s}.rv.vis .sec h2::after,.sec.vis h2::after{transform:scaleX(1)}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px}
+.fc{padding:8px 16px;border-radius:99px;border:1px solid var(--line);background:var(--card);font-size:13px;transition:.2s}.fc:hover{border-color:var(--acc)}.fc.on{background:linear-gradient(135deg,var(--acc),color-mix(in srgb,var(--acc) 55%,#5b8cff));border-color:transparent;color:#fff}
+.tools .q{flex:1;min-width:180px;max-width:320px;position:relative}.tools .q svg{position:absolute;left:12px;top:12px;color:var(--mut)}.tools .q input{padding-left:38px}
+.tools select{width:auto}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:22px;perspective:1400px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);cursor:pointer;position:relative;transform-style:preserve-3d;transition:transform .18s ease-out,border-color .3s,box-shadow .3s;backdrop-filter:blur(8px)}
-.card:hover{border-color:var(--acc);box-shadow:0 30px 60px -30px var(--acc)}
+.empty{grid-column:1/-1;text-align:center;color:var(--mut);padding:50px 0}
+.card{background:var(--solid);border:1px solid var(--line);border-radius:var(--r);cursor:pointer;position:relative}
+.card:hover{border-color:var(--acc);box-shadow:0 30px 60px -30px var(--acc)}.card:focus-visible{outline:2px solid var(--acc2)}
 .glare{position:absolute;inset:0;border-radius:inherit;background:radial-gradient(260px circle at var(--gx,50%) var(--gy,0%),#fff2,transparent 60%);opacity:0;transition:opacity .3s;pointer-events:none;z-index:3}.card:hover .glare{opacity:1}
-.ph{--h:265;aspect-ratio:1;border-radius:var(--r) var(--r) 0 0;background:radial-gradient(circle at 50% 40%,hsl(var(--h) 70% 25%),#0a0c14);display:grid;place-items:center;transform:translateZ(18px) scale(.96);transition:transform .3s;overflow:hidden}.card:hover .ph{transform:translateZ(40px) scale(1)}
-.mini{width:62px;height:150px;border-radius:18px;background:linear-gradient(160deg,hsl(var(--h) 90% 62%),hsl(calc(var(--h) + 50) 85% 38%));box-shadow:0 0 50px -8px hsl(var(--h) 90% 55%),inset 0 0 20px #0007;animation:tilt 5s ease-in-out infinite;position:relative}
-.mini::after{content:"";position:absolute;left:20%;top:8%;width:14%;height:80%;border-radius:99px;background:linear-gradient(#fff6,transparent)}
+.ph{--h:265;aspect-ratio:1;border-radius:var(--r) var(--r) 0 0;background:radial-gradient(circle at 50% 45%,hsl(var(--h) 70% 26%),#080a12 75%);display:grid;place-items:center;overflow:visible;transform-style:preserve-3d;position:relative}
+.ph::after{content:"";position:absolute;left:25%;right:25%;bottom:8%;height:10%;border-radius:50%;background:radial-gradient(#000a,transparent 70%);transform:translateZ(0)}
+.shot{width:88%;height:88%;object-fit:contain;transform:translateZ(40px);transition:transform .35s cubic-bezier(.2,.9,.3,1.2),filter .3s;filter:drop-shadow(0 20px 20px #0008);position:relative;z-index:1}.card:hover .shot{transform:translateZ(80px) scale(1.1) rotate(-4deg)}
+.mini{width:62px;height:150px;border-radius:18px;background:linear-gradient(160deg,hsl(var(--h,265) 90% 62%),hsl(calc(var(--h,265) + 50) 85% 38%));box-shadow:0 0 50px -8px hsl(var(--h,265) 90% 55%),inset 0 0 20px #0007;animation:tilt 5s ease-in-out infinite;position:relative}
 @keyframes tilt{0%,100%{transform:rotateY(-25deg) rotateZ(-4deg)}50%{transform:rotateY(25deg) rotateZ(4deg) translateY(-8px)}}
 .in{padding:14px 16px 16px;transform:translateZ(26px)}.card h3{font-size:16px}.card small{color:var(--mut)}
-.meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px}.price{font:800 20px "Space Grotesk"}.k{font-size:12px;color:var(--acc2);background:color-mix(in srgb,var(--acc2) 14%,transparent);padding:3px 10px;border-radius:99px}
-.tag{position:absolute;top:12px;left:12px;background:#000b;color:#fff;padding:4px 11px;border-radius:99px;font-size:12px;transform:translateZ(50px);z-index:2}
+.meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px}.price{font:800 21px "Space Grotesk"}
+.k{display:inline-block;margin-top:8px;font-size:12px;color:var(--acc2);background:color-mix(in srgb,var(--acc2) 14%,transparent);padding:3px 10px;border-radius:99px}
+.qa{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:22px;line-height:1;display:grid;place-items:center;transition:transform .25s}.qa:hover{transform:rotate(90deg) scale(1.12)}.qa:active{transform:scale(.85)}
+.tag{position:absolute;top:12px;left:12px;background:#000b;color:#fff;padding:4px 11px;border-radius:99px;font-size:12px;transform:translateZ(60px);z-index:4}
 .rv{opacity:0}.rv.vis{opacity:1;animation:rise .9s cubic-bezier(.2,.8,.2,1) var(--d,0s) backwards}
-@keyframes rise{from{opacity:0;transform:perspective(900px) translateY(60px) rotateX(-28deg) scale(.92)}}
+@keyframes rise{from{opacity:0;transform:perspective(900px) translateY(70px) rotateX(-30deg) scale(.92)}}
+
+/* étapes */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;position:relative;margin:30px 0 20px}
+.steps::before{content:"";position:absolute;left:16%;right:16%;top:34px;height:3px;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:3px;transform:scaleX(0);transform-origin:left;transition:transform 1.6s .4s cubic-bezier(.3,.8,.3,1)}.steps.vis::before{transform:scaleX(1)}
+.step{text-align:center;padding:0 10px;position:relative}.step .n{width:68px;height:68px;border-radius:50%;margin:0 auto 14px;display:grid;place-items:center;font:800 26px "Space Grotesk";background:var(--solid);border:2px solid var(--acc2);box-shadow:0 0 0 6px var(--bg),0 0 30px -6px var(--acc2);animation:pulse 3s infinite}
+.step:nth-child(2) .n{animation-delay:-1s}.step:nth-child(3) .n{animation-delay:-2s}@keyframes pulse{50%{box-shadow:0 0 0 6px var(--bg),0 0 40px 0 var(--acc2)}}
+.step h3{margin-bottom:4px}.step p{color:var(--mut);font-size:14px}
+@media(max-width:820px){.steps{grid-template-columns:1fr}.steps::before{display:none}}
+
+/* faq */
+.fq{border:1px solid var(--line);border-radius:16px;background:var(--card);margin-bottom:10px;overflow:hidden;transition:border-color .3s}.fq.open{border-color:var(--acc)}
+.qq{width:100%;text-align:left;padding:16px 18px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:10px}.qq span{transition:transform .35s;font-size:22px;color:var(--acc2)}.fq.open .qq span{transform:rotate(45deg)}
+.aa{max-height:0;overflow:hidden;transition:max-height .4s ease;color:var(--mut)}.aa p{padding:0 18px 16px}
+
+footer{border-top:1px solid var(--line);padding:34px 20px;text-align:center;color:var(--mut);font-size:13px;line-height:1.8}
+footer b{color:var(--tx)}
 
 /* overlays */
 .ov{position:fixed;inset:0;background:#000a;backdrop-filter:blur(6px);z-index:60;display:none;place-items:center;padding:16px;overflow:auto}.ov.on{display:grid;animation:fade .25s}@keyframes fade{from{opacity:0}}
 .box{background:var(--solid);border:1px solid var(--line);border-radius:24px;padding:26px;width:min(980px,100%);position:relative;max-height:92vh;overflow:auto;box-shadow:0 50px 120px -30px #000;animation:boxin .5s cubic-bezier(.2,.9,.3,1.2)}
 @keyframes boxin{from{opacity:0;transform:perspective(1000px) rotateX(22deg) translateY(50px) scale(.92)}}
-.box.s{width:min(460px,100%)}.x{position:absolute;right:14px;top:12px;font-size:22px;color:var(--mut);z-index:5;width:34px;height:34px;border-radius:50%;transition:.3s}.x:hover{background:var(--line);color:var(--tx);transform:rotate(90deg)}
+.box.s{width:min(460px,100%)}.x{position:absolute;right:14px;top:12px;font-size:20px;color:var(--mut);z-index:5;width:34px;height:34px;border-radius:50%;transition:.3s}.x:hover{background:var(--line);color:var(--tx);transform:rotate(90deg)}
 .pm{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px}.pm>div{min-width:0}
-@media(max-width:820px){.pm,.hero{grid-template-columns:minmax(0,1fr)}.sr{display:none}.bar .logo{margin-right:auto}.stage{order:-1}}
-.main{position:relative;aspect-ratio:1;max-height:56vh;margin:auto;border-radius:18px;overflow:hidden;background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--acc) 30%,#0e121b),#07080d)}
-.stage3{position:absolute;inset:0;display:grid;place-items:center;perspective:900px;transform:scale(.8)}
-.tiers{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.tier{border:1px solid var(--line);border-radius:14px;padding:10px 4px;text-align:center;cursor:pointer;font-size:13px;transition:.2s}.tier:hover{transform:translateY(-3px)}.tier.on{border-color:var(--acc2);background:color-mix(in srgb,var(--acc2) 12%,transparent);box-shadow:0 10px 24px -14px var(--acc2)}
+@media(max-width:820px){.pm{grid-template-columns:minmax(0,1fr)}}
+.pv-wrap{position:relative}
+.pv{aspect-ratio:1;max-height:56vh;margin:auto;border-radius:18px;overflow:hidden;background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--acc) 28%,#0e121b),#07080d)}
+.pv canvas{width:100%!important;height:100%!important;display:block;cursor:grab;touch-action:pan-y}
+.big{font-size:32px}.lbl{font-size:13px;color:var(--mut)}.lbl b{color:var(--tx)}
+.sws{display:flex;gap:10px;flex-wrap:wrap}.sw{width:36px;height:36px;border-radius:50%;background:var(--c);border:2px solid transparent;box-shadow:0 0 0 2px var(--bg),0 6px 16px -6px var(--c);transition:.25s}.sw:hover{transform:scale(1.15)}.sw.on{border-color:#fff;transform:scale(1.18)}
+.tiers{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.tier{border:1px solid var(--line);border-radius:14px;padding:10px 4px;text-align:center;font-size:13px;transition:.2s}.tier small{display:block;color:var(--acc2)}.tier:hover{transform:translateY(-3px)}.tier.on{border-color:var(--acc2);background:color-mix(in srgb,var(--acc2) 12%,transparent);box-shadow:0 10px 24px -14px var(--acc2)}
+.qty{display:flex;gap:8px}.qty button{width:46px;border-radius:12px;background:#0b0e16;border:1px solid var(--line);font-size:20px;transition:.2s}.qty button:hover{background:var(--acc)}.qty input{text-align:center}
 
 /* panier */
 .dim{position:fixed;inset:0;background:#0008;z-index:59;opacity:0;pointer-events:none;transition:.3s}.dim.on{opacity:1;pointer-events:auto}
 .side{position:fixed;right:0;top:0;bottom:0;width:min(440px,100%);background:var(--solid);z-index:61;transform:translateX(105%) rotateY(-12deg);transform-origin:right;transition:transform .5s cubic-bezier(.2,.9,.3,1);padding:20px;display:flex;flex-direction:column;border-left:1px solid var(--line)}.side.on{transform:none}
-.row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}.row>div:nth-child(2){flex:1;min-width:0}.row .t{--h:265;width:54px;height:54px;border-radius:12px;background:linear-gradient(160deg,hsl(var(--h) 90% 62%),hsl(calc(var(--h) + 50) 85% 38%));flex:none}
-.qb{display:flex;align-items:center;gap:8px}.qb button{width:30px;height:30px;border-radius:9px;background:var(--bg);border:1px solid var(--line);transition:.2s}.qb button:hover{background:var(--acc)}
+.row{display:grid;grid-template-columns:58px 1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);animation:rowin .4s}@keyframes rowin{from{opacity:0;transform:translateX(30px)}}
+.row .t{--h:265;width:58px;height:58px;border-radius:12px;background:radial-gradient(circle,hsl(var(--h) 70% 28%),#080a12);background-size:cover;background-position:center;background-repeat:no-repeat}
+.row b{font-size:14px}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:var(--c)}
+.rp{text-align:right;font-weight:700}.rp button{display:block;margin:4px 0 0 auto;font-size:12px;color:var(--mut);font-weight:400}.rp button:hover{color:var(--ko)}
+.qb{display:flex;align-items:center;gap:8px;margin-top:6px}.qb button{width:28px;height:28px;border-radius:9px;background:var(--bg);border:1px solid var(--line);transition:.2s}.qb button:hover{background:var(--acc)}
 .bar2{height:8px;background:var(--bg);border-radius:9px;overflow:hidden}.bar2 i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:9px;transition:width .6s}
+.tot{display:flex;justify-content:space-between}.tot.g{font:800 22px "Space Grotesk"}
+.fly{position:fixed;z-index:300;width:56px;height:56px;pointer-events:none;background:center/contain no-repeat;filter:drop-shadow(0 10px 16px #000a)}.fly.d{background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:14px}
 
-/* vérif / divers */
-.code{font:800 40px "Space Grotesk";letter-spacing:6px;text-align:center;color:var(--acc2);padding:14px;border:2px dashed var(--acc2);border-radius:16px;animation:pulse 2s infinite}@keyframes pulse{50%{box-shadow:0 0 30px -6px var(--acc2)}}
-#age{position:fixed;inset:0;z-index:100;background:radial-gradient(700px 400px at 50% 0,color-mix(in srgb,var(--acc) 40%,transparent),var(--bg));display:grid;place-items:center;padding:20px}
-#age .box{text-align:center;animation:flip .9s cubic-bezier(.2,.9,.3,1.1)}@keyframes flip{from{opacity:0;transform:perspective(900px) rotateY(-90deg) scale(.8)}}
+/* auth */
+.tabs{display:grid;grid-template-columns:1fr 1fr;position:relative;background:#0b0e16;border-radius:12px;padding:4px}.tab{padding:9px;border-radius:9px;position:relative;z-index:1;color:var(--mut);transition:.25s}.tab.on{color:#fff}
+.tabs i{position:absolute;left:4px;top:4px;bottom:4px;width:calc(50% - 4px);border-radius:9px;background:linear-gradient(135deg,var(--acc),color-mix(in srgb,var(--acc) 55%,#5b8cff));transition:transform .35s cubic-bezier(.3,1.2,.4,1)}.tabs.up i{transform:translateX(100%)}
+.or{text-align:center;color:var(--mut);position:relative}.or::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:var(--line)}.or span{position:relative;background:var(--solid);padding:0 10px}
+
+/* vérif */
+.code{font:800 40px "Space Grotesk";letter-spacing:6px;text-align:center;color:var(--acc2);padding:14px;border:2px dashed var(--acc2);border-radius:16px;animation:pulse2 2s infinite}@keyframes pulse2{50%{box-shadow:0 0 30px -6px var(--acc2)}}
+.drop{cursor:pointer}.drop input{display:none}.pvw{display:grid;place-items:center;margin-top:5px;height:96px;border:2px dashed var(--line);border-radius:14px;background:#0b0e16 center/cover no-repeat;transition:.2s;font-size:13px}.drop:hover .pvw{border-color:var(--acc)}.pvw.ok{border-style:solid;border-color:var(--ok);color:#fff;text-shadow:0 1px 6px #000}
+
+/* contrôle d'âge */
+#age,#minor{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;overflow:auto;background:radial-gradient(800px 500px at 50% 0,color-mix(in srgb,var(--acc) 38%,transparent),var(--bg))}
+#minor{display:none;background:radial-gradient(800px 500px at 50% 0,#ef444455,var(--bg))}#minor.on{display:grid}
+#age.out{animation:ageout .7s cubic-bezier(.5,0,.8,.4) forwards;pointer-events:none}@keyframes ageout{to{opacity:0;transform:perspective(900px) rotateX(18deg) translateY(-80px) scale(.9)}}
+.agebox{width:min(480px,100%);text-align:center;background:#10131dee;border:1px solid var(--line);border-radius:28px;padding:30px 26px;box-shadow:0 50px 120px -30px #000;animation:flip .9s cubic-bezier(.2,.9,.3,1.1)}@keyframes flip{from{opacity:0;transform:perspective(900px) rotateY(-90deg) scale(.8)}}
+.agebox.shake{animation:shk .45s}@keyframes shk{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+.agebox>*+*{margin-top:12px}
+.n18{position:relative;width:130px;height:130px;margin:0 auto 10px;perspective:600px;display:grid;place-items:center}
+.n18 b{font:800 44px "Space Grotesk";z-index:2}.n18 sup{font-size:24px;color:var(--acc2)}
+.n18 i{position:absolute;inset:0;border-radius:50%;border:2px solid var(--acc2);box-shadow:0 0 24px -4px var(--acc2),inset 0 0 24px -8px var(--acc2)}
+.n18 i:nth-child(1){animation:r1 5s linear infinite}.n18 i:nth-child(2){border-color:var(--acc);box-shadow:0 0 24px -4px var(--acc);animation:r2 7s linear infinite}.n18 i:nth-child(3){border-color:#fff4;animation:r3 9s linear infinite}
+@keyframes r1{from{transform:rotateX(70deg) rotateZ(0)}to{transform:rotateX(70deg) rotateZ(360deg)}}
+@keyframes r2{from{transform:rotateY(70deg) rotateZ(0)}to{transform:rotateY(70deg) rotateZ(-360deg)}}
+@keyframes r3{from{transform:rotateX(40deg) rotateY(40deg) rotateZ(0)}to{transform:rotateX(40deg) rotateY(40deg) rotateZ(360deg)}}
+.ban{display:inline-block;background:#ef444422;color:#ff8d8d;border:1px solid #ef444466;border-radius:99px;padding:4px 14px;font-size:12px;font-weight:700;letter-spacing:.5px}
+.dob{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:10px;text-align:left}.dob input{text-align:center;font-size:18px;font-weight:600}
+.agebox small{display:block;color:var(--mut);font-size:12px}
+#minor .agebox{border-color:#ef444455}#minor h2{color:#ff8d8d}
+
+/* toasts / cookies */
 #toasts{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;width:min(92vw,440px)}
-.toast{background:var(--solid);border:1px solid var(--line);border-left:4px solid var(--acc2);padding:12px 16px;border-radius:14px;box-shadow:0 20px 50px -15px #000;animation:tin .4s cubic-bezier(.2,.9,.3,1.3);width:100%}.toast.ko{border-left-color:var(--ko)}.toast.ok{border-left-color:var(--ok)}@keyframes tin{from{opacity:0;transform:translateY(30px) scale(.9)}}
+.toast{background:var(--solid);border:1px solid var(--line);border-left:4px solid var(--acc2);padding:12px 16px;border-radius:14px;box-shadow:0 20px 50px -15px #000;animation:tin .4s cubic-bezier(.2,.9,.3,1.3);width:100%;display:flex;gap:12px;align-items:center;justify-content:space-between}.toast.ko{border-left-color:var(--ko)}.toast.ok{border-left-color:var(--ok)}.toast.out{opacity:0;transform:translateY(20px);transition:.35s}
+.toast button{color:var(--acc2);font-weight:700;white-space:nowrap}@keyframes tin{from{opacity:0;transform:translateY(30px) scale(.9)}}
 #cookie{position:fixed;left:16px;bottom:16px;max-width:560px;background:var(--solid);border:1px solid var(--line);border-radius:18px;padding:16px;z-index:90;display:none;gap:12px;align-items:center;flex-wrap:wrap}
-footer{border-top:1px solid var(--line);padding:34px 20px;text-align:center;color:var(--mut);font-size:13px}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:250}
 </style></head><body>
+<div id="prog"></div>
 <div class="bgfx"><div class="blob a"></div><div class="blob b"></div>
 <i style="left:8%;animation-delay:0s"></i><i style="left:24%;animation-delay:3s"></i><i style="left:41%;animation-delay:6s"></i><i style="left:58%;animation-delay:1.5s"></i><i style="left:74%;animation-delay:4.5s"></i><i style="left:90%;animation-delay:8s"></i></div>
 <div id="glow"></div>
-<div id="age"><div class="box s stack"><div class="logo">VAPE<b> SHOP</b></div><h2>Avez-vous 18 ans ou plus ?</h2><p class="mut">La vente de produits du tabac et de la vape est interdite aux mineurs. Ces produits contiennent de la nicotine, substance addictive.</p><button class="btn w" id="ageYes">Oui, j'ai 18 ans ou plus</button><button class="btn alt w" id="ageNo">Non</button></div></div>
-<div class="promo">🚚 Livraison offerte dès 39 € · Prix dégressifs dès 3 articles</div>
-<header><div class="bar"><div class="logo">VAPE<b> SHOP</b></div>
-<div class="sr"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="q" placeholder="Rechercher un puff…"></div>
+
+<!-- CONTRÔLE D'ÂGE -->
+<div id="age" role="dialog" aria-modal="true" aria-labelledby="ageT"><div class="agebox" id="ageBox">
+  <div class="logo">VAPE<b> SHOP</b></div>
+  <div class="n18"><i></i><i></i><i></i><b>18<sup>+</sup></b></div>
+  <span class="ban">⛔ INTERDIT AUX MINEURS</span>
+  <h2 id="ageT">Entrée réservée aux adultes</h2>
+  <p class="mut">La vente de produits du vapotage est <b style="color:var(--tx)">strictement interdite aux moins de 18 ans</b>. Ces produits contiennent de la nicotine, substance très addictive.</p>
+  <div class="dob"><label>Jour<input id="dd" inputmode="numeric" maxlength="2" placeholder="JJ" autocomplete="bday-day"></label><label>Mois<input id="mm" inputmode="numeric" maxlength="2" placeholder="MM" autocomplete="bday-month"></label><label>Année<input id="yy" inputmode="numeric" maxlength="4" placeholder="AAAA" autocomplete="bday-year"></label></div>
+  <p class="err" id="ageErr"></p>
+  <button class="btn w" id="ageYes">Je confirme avoir 18 ans ou plus</button>
+  <button class="btn alt w" id="ageNo">J'ai moins de 18 ans</button>
+  <small>Une vérification d'identité (pièce + selfie) sera exigée avant ton premier achat.</small>
+</div></div>
+<div id="minor" role="alertdialog"><div class="agebox">
+  <div style="font-size:60px">🚫</div><h2>Accès refusé</h2>
+  <p class="mut">Ce site est réservé aux personnes majeures. La vente de produits du vapotage aux mineurs est interdite.</p>
+  <p class="mut">Besoin d'aide pour arrêter de fumer ou vapoter ? Appelle <b style="color:var(--tx)">Tabac Info Service : 3989</b>.</p>
+  <a class="btn alt w" href="https://www.google.fr">Quitter le site</a>
+</div></div>
+
+<div class="promo">🚚 Livraison offerte dès 39 € · Prix dégressifs dès 3 articles · ♻ Rechargeables uniquement</div>
+<header><div class="bar"><a class="logo" href="#top">VAPE<b> SHOP</b></a>
+<nav><a href="#shop">Boutique</a><a href="#why">Avantages</a><a href="#how">Vérification</a><a href="#faq">FAQ</a></nav><div class="sp"></div>
 <span class="chip" id="vchip" style="display:none"></span>
-<button class="btn alt" id="bAcc">Connexion</button>
-<button class="ib" id="bCart" aria-label="Panier"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 3H2"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg><span id="cn">0</span></button></div></header>
+<button class="ib" id="bSearch" aria-label="Rechercher"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
+<button class="btn alt" id="bAcc" style="padding:10px 16px">Connexion</button>
+<button class="ib" id="bCart" aria-label="Panier"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 3H2"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg><span id="cn">0</span></button>
+<button class="ib" id="burger" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
+<div class="menu" id="menu"><a href="#shop">Boutique</a><a href="#why">Avantages</a><a href="#how">Vérification</a><a href="#faq">FAQ</a></div></header>
 
-<section class="hero"><div><span class="pill"><i></i>Réservé aux majeurs · 20 mg</span><h1>Les puffs <span class="grad">JNR</span>, livrés vite.</h1><p>Toute la gamme JNR à prix dégressifs. Paiement sécurisé, livraison en France.</p><div style="display:flex;gap:12px;flex-wrap:wrap"><a class="btn" href="#shop" style="text-decoration:none">Voir les puffs</a><button class="btn alt" onclick="showP('falcon-x-28000')">Falcon X 28000</button></div>
-<div class="stats"><div><b>5</b><span>modèles</span></div><div><b>-15%</b><span>dès 10 pièces</span></div><div><b>39 €</b><span>livraison offerte</span></div></div></div>
-<div class="stage"><div class="floor"></div><div class="scene" style="transform-style:preserve-3d"><div class="ring"></div><div class="ring r2"></div><div class="dev"><i></i><i></i><i></i><i></i></div></div></div></section>
+<section class="hero" id="top"><div class="hl" id="hl"><span class="pill"><i></i>Rechargeable · Réservé aux majeurs</span>
+<h1><span class="ln"><span style="--i:0">Le puff</span></span><span class="ln"><span style="--i:1"><em class="grad">rechargeable.</em></span></span><span class="ln"><span style="--i:2">Pas jetable.</span></span></h1>
+<p class="sub">Toute la gamme JNR, 20 mg/mL de nicotine, à prix dégressifs. Paiement sécurisé, livraison en France, vérification d'âge obligatoire.</p>
+<div style="display:flex;gap:12px;flex-wrap:wrap"><a class="btn mag" href="#shop">Voir les puffs</a><button class="btn alt mag" data-open="falcon-x-28000">Falcon X 28000</button></div>
+<div class="stats"><div><b data-count="5">0</b><span>modèles</span></div><div><b><span data-count="15">0</span>%</b><span>dès 10 pièces</span></div><div><b><span data-count="39">0</span> €</b><span>livraison offerte</span></div></div></div>
+<div class="stage" id="stage"><div class="hero3d" id="h3d"></div><span class="fl f1">♻ Rechargeable</span><span class="fl f2">20 mg/mL</span><span class="fl f3">🔞 Majeurs uniquement</span><span class="hint">Glisse pour faire tourner ↻</span></div></section>
 
-<div class="mq"><div><span>⚡ Puffs JNR 20 mg</span><span>🚚 Livraison offerte dès 39 €</span><span>🔒 Paiement Stripe</span><span>🪪 Vérification d'âge</span><span>📦 Expédition rapide</span><span>⚡ Puffs JNR 20 mg</span><span>🚚 Livraison offerte dès 39 €</span><span>🔒 Paiement Stripe</span><span>🪪 Vérification d'âge</span><span>📦 Expédition rapide</span></div></div>
+<div class="mq"><div><span>♻ Puffs rechargeables</span><span>🚚 Livraison offerte dès 39 €</span><span>🔒 Paiement Stripe</span><span>🪪 Vérification d'âge</span><span>📦 Expédition rapide</span><span>♻ Puffs rechargeables</span><span>🚚 Livraison offerte dès 39 €</span><span>🔒 Paiement Stripe</span><span>🪪 Vérification d'âge</span><span>📦 Expédition rapide</span></div></div>
 
-<div class="wrap" id="shop">
-<div class="feats"><div class="feat rv"><span class="ic">🚚</span><h3>Livraison rapide</h3><p>Offerte dès 39 € d'achat.</p></div><div class="feat rv" style="--d:.1s"><span class="ic">💸</span><h3>Prix dégressifs</h3><p>-6 % dès 3, -10 % dès 5, -15 % dès 10.</p></div><div class="feat rv" style="--d:.2s"><span class="ic">🔒</span><h3>Paiement sécurisé</h3><p>Carte bancaire via Stripe.</p></div></div>
-<div class="sec"><h2>Nos puffs</h2><span class="mut" id="count"></span><select id="sort"><option value="">Tri : pertinence</option><option value="a">Prix croissant</option><option value="d">Prix décroissant</option></select></div>
+<div class="wrap">
+<div class="feats" id="why"><div class="feat rv"><span class="ic">♻</span><h3>Rechargeable</h3><p>Un appareil qui se recharge, pas un jetable.</p></div><div class="feat rv" style="--d:.1s"><span class="ic">💸</span><h3>Prix dégressifs</h3><p>-6 % dès 3, -10 % dès 5, -15 % dès 10.</p></div><div class="feat rv" style="--d:.2s"><span class="ic">🪪</span><h3>Majeurs uniquement</h3><p>Contrôle d'âge et vérification d'identité.</p></div><div class="feat rv" style="--d:.3s"><span class="ic">🔒</span><h3>Paiement sécurisé</h3><p>Carte bancaire via Stripe.</p></div></div>
+
+<div id="shop"><div class="sec"><h2>Nos puffs rechargeables</h2><span class="mut" id="count"></span></div>
+<div class="tools"><button class="fc on" data-f="all">Tous</button><button class="fc" data-f="cheap">Moins de 15 €</button><button class="fc" data-f="big">Grande capacité (30K+)</button>
+<div class="q"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="q" placeholder="Rechercher un puff…"></div>
+<select id="sort"><option value="">Tri : pertinence</option><option value="a">Prix croissant</option><option value="d">Prix décroissant</option><option value="p">Plus de puffs</option></select></div>
 <div class="grid" id="grid"></div></div>
-<footer>⚠️ La nicotine crée une forte dépendance. Vente interdite aux moins de 18 ans. Pour arrêter : Tabac Info Service 3989.<br>© VAPE SHOP</footer>
 
-<div class="ov" id="pm"><div class="box"><button class="x" data-close>✕</button><div id="pmb"></div></div></div>
+<div id="how" style="margin-top:70px"><div class="sec"><h2>Comment commander</h2></div>
+<div class="steps rv" id="steps"><div class="step"><div class="n">1</div><h3>Crée ton compte</h3><p>Email, Google ou Apple.</p></div><div class="step"><div class="n">2</div><h3>Vérifie ton âge</h3><p>Pièce d'identité + selfie avec un code. Obligatoire avant le 1er achat.</p></div><div class="step"><div class="n">3</div><h3>Paye en sécurité</h3><p>Carte bancaire, livraison en France.</p></div></div>
+<div style="text-align:center"><button class="btn mag" id="bVerif">Vérifier mon âge</button></div></div>
+
+<div id="faq" style="margin-top:70px"><div class="sec"><h2>Questions fréquentes</h2></div>
+<div class="fq"><button class="qq">Pourquoi une vérification d'identité ?<span>+</span></button><div class="aa"><p>La vente aux mineurs est interdite. Avant ton premier achat, on contrôle ta majorité avec une pièce d'identité et un selfie où tu tiens un papier avec un code.</p></div></div>
+<div class="fq"><button class="qq">Que veut dire « rechargeable » ?<span>+</span></button><div class="aa"><p>Ce sont des puffs conçus pour être rechargés et réutilisés, pas des appareils jetables.</p></div></div>
+<div class="fq"><button class="qq">Comment marchent les prix dégressifs ?<span>+</span></button><div class="aa"><p>Pour un même modèle : -6 % dès 3 pièces, -10 % dès 5, -15 % dès 10. Le prix se met à jour automatiquement dans le panier.</p></div></div>
+<div class="fq"><button class="qq">Livraison et frais ?<span>+</span></button><div class="aa"><p>Livraison offerte dès 39 € d'achat, sinon 4,90 €.</p></div></div>
+<div class="fq"><button class="qq">Je veux arrêter de fumer ou vapoter<span>+</span></button><div class="aa"><p>Tabac Info Service peut t'aider gratuitement : appelle le 3989.</p></div></div></div>
+</div>
+
+<footer><b>⚠️ La nicotine crée une forte dépendance.</b> Vente interdite aux moins de 18 ans.<br>Pour arrêter : Tabac Info Service 3989.<br>© VAPE SHOP</footer>
+
+<div class="ov" id="pm"><div class="box"><button class="x" data-close aria-label="Fermer">✕</button><div id="pmb"></div></div></div>
 <div class="dim" id="dim"></div>
-<div class="side" id="cart"><div style="display:flex;justify-content:space-between;align-items:center"><h2>Panier</h2><button class="x" style="position:static" id="cx">✕</button></div><div id="cl" style="flex:1;overflow:auto"></div><div id="ct" class="stack"></div></div>
-<div class="ov" id="auth"><div class="box s stack"><button class="x" data-close>✕</button><h2>Connexion</h2><button class="btn alt w" id="gG">Continuer avec Google</button><button class="btn alt w" id="gA"> Continuer avec Apple</button><div class="mut" style="text-align:center">ou</div><input id="em" type="email" placeholder="Email"><input id="pw" type="password" placeholder="Mot de passe (6+ caractères)"><div style="display:flex;gap:8px"><button class="btn" id="li" style="flex:1">Se connecter</button><button class="btn alt" id="su" style="flex:1">Créer un compte</button></div><p id="am" class="mut"></p></div></div>
-<div class="ov" id="idv"><div class="box s stack"><button class="x" data-close>✕</button><h2>Vérification d'identité</h2><p class="mut">Écris ce code sur un papier, puis envoie : (1) ta pièce d'identité, (2) un selfie où tu tiens le papier.</p><div class="code" id="code">…</div><label>Pièce d'identité<input type="file" id="f1" accept="image/*"></label><label>Selfie avec le code<input type="file" id="f2" accept="image/*"></label><button class="btn w" id="send">Envoyer</button><p id="vm" class="mut"></p></div></div>
-<div id="cookie"><span style="flex:1;min-width:200px">🍪 Nous utilisons des cookies pour le panier et améliorer votre expérience.</span><button class="btn alt" id="ck0">Refuser</button><button class="btn" id="ck1">Accepter</button></div>
-<div id="toasts"></div>
+<div class="side" id="cart"><div style="display:flex;justify-content:space-between;align-items:center"><h2>Panier</h2><button class="x" style="position:static" id="cx" aria-label="Fermer">✕</button></div><div id="cl" style="flex:1;overflow:auto"></div><div id="ct" class="stack"></div></div>
+<div class="ov" id="auth"><div class="box s stack"><button class="x" data-close aria-label="Fermer">✕</button><h2>Mon compte</h2>
+<div class="tabs" id="tabs"><i></i><button class="tab on" data-m="in">Connexion</button><button class="tab" data-m="up">Créer un compte</button></div>
+<button class="btn alt w" id="gG">Continuer avec Google</button><button class="btn alt w" id="gA"> Continuer avec Apple</button><div class="or"><span>ou</span></div>
+<input id="em" type="email" autocomplete="email" placeholder="Email"><input id="pw" type="password" autocomplete="current-password" placeholder="Mot de passe (6+ caractères)">
+<button class="btn w" id="asub">Se connecter</button><button class="lnk" id="forgot">Mot de passe oublié ?</button><p id="am" class="mut"></p></div></div>
+<div class="ov" id="idv"><div class="box s stack"><button class="x" data-close aria-label="Fermer">✕</button><h2>Vérification d'âge</h2><p class="mut">Obligatoire avant ton premier achat. Écris ce code sur un papier, puis envoie ta pièce d'identité et un selfie où tu tiens le papier.</p><div class="code" id="code">…</div>
+<label class="drop">Pièce d'identité<input type="file" id="f1" accept="image/*"><span class="pvw" id="p1">📄 Choisir une photo</span></label>
+<label class="drop">Selfie avec le code<input type="file" id="f2" accept="image/*"><span class="pvw" id="p2">🤳 Choisir une photo</span></label>
+<button class="btn w" id="send" disabled>Envoyer</button><p id="vm" class="mut"></p></div></div>
+<div id="cookie"><span style="flex:1;min-width:200px">🍪 Nous utilisons le stockage local pour le panier et ton choix d'âge.</span><button class="btn alt" id="ck0">Refuser</button><button class="btn" id="ck1">Accepter</button></div>
+<div id="toasts"></div><canvas id="confetti"></canvas>
 
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="/__/firebase/10.12.0/firebase-app-compat.js"></script>
 <script src="/__/firebase/10.12.0/firebase-auth-compat.js"></script>
 <script src="/__/firebase/10.12.0/firebase-firestore-compat.js"></script>
