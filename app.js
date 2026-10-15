@@ -4,7 +4,7 @@ const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1560401118775742605/mZ
 const SITE = location.origin + location.pathname;
 const notify = (title, color, fields, txt = "Ouvrir le dashboard pour décider") => { if (!DISCORD_WEBHOOK) return; fetch(DISCORD_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "VAPE SHOP", embeds: [{ title, color, fields, description: `[👉 ${txt}](${SITE}#dash)`, timestamp: new Date().toISOString() }] }) }).catch(() => {}); };
 firebase.initializeApp(cfg);
-const auth = firebase.auth(), db = firebase.firestore(), st = firebase.storage(), TS = () => firebase.firestore.FieldValue.serverTimestamp();
+const auth = firebase.auth(), db = firebase.firestore(), TS = () => firebase.firestore.FieldValue.serverTimestamp();
 const $ = id => document.getElementById(id), $$ = s => [...document.querySelectorAll(s)];
 const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
 const euro = n => n.toFixed(2).replace(".", ",") + " €";
@@ -214,12 +214,24 @@ function openVerif() {
 }
 $("bVerif").onclick = openVerif;
 ["1", "2"].forEach(n => $("f" + n).onchange = e => { const f = e.target.files[0], p = $("p" + n); if (f) { p.style.backgroundImage = `url(${URL.createObjectURL(f)})`; p.classList.add("ok"); p.textContent = "✓ Photo ajoutée"; } $("send").disabled = !($("f1").files[0] && $("f2").files[0]); });
+// photos réduites (JPEG) et stockées dans Firestore : pas besoin de Firebase Storage
+const shrink = f => new Promise((res, rej) => {
+  const im = new Image(), u = URL.createObjectURL(f);
+  im.onload = () => {
+    for (const [max, q] of [[1000, .72], [800, .6], [640, .5]]) {
+      const k = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement("canvas");
+      c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+      const d = c.toDataURL("image/jpeg", q); if (d.length < 430000 || max === 640) { URL.revokeObjectURL(u); return res(d); }
+    }
+  };
+  im.onerror = () => rej(new Error("Photo illisible : essaie une autre photo (JPG ou PNG)."));
+  im.src = u;
+});
 $("send").onclick = async () => {
   const b = $("send"); b.disabled = true; b.classList.add("load"); $("vm").textContent = "Envoi…";
   try {
-    const up = async (f, n) => { const r = st.ref(`verifications/${user.uid}/${n}`); await r.put(f); return r.getDownloadURL(); };
-    const idUrl = await up($("f1").files[0], "id"), selfieUrl = await up($("f2").files[0], "selfie");
-    await db.doc("verifications/" + user.uid).set({ uid: user.uid, email: user.email, code: vcode, idUrl, selfieUrl, status: "pending", createdAt: TS() });
+    const idImg = await shrink($("f1").files[0]), selfieImg = await shrink($("f2").files[0]);
+    await db.doc("verifications/" + user.uid).set({ uid: user.uid, email: user.email, code: vcode, idImg, selfieImg, status: "pending", createdAt: TS() });
     notify("🪪 Nouvelle vérification d'âge", 0xf59e0b, [{ name: "Email", value: String(user.email) }, { name: "Code sur le papier", value: "**" + vcode + "**" }]);
     $("vm").textContent = ""; shut("idv"); toast("Envoyé ✅ Tu seras averti dès la validation.", "ok", 6000);
   } catch (e) { $("vm").textContent = fbErr(e); b.disabled = false; }
@@ -231,7 +243,7 @@ $("bDash").onclick = () => {
   if (!user || user.email !== ADMIN) return; open("dash"); dashUnsub.forEach(f => f()); dashUnsub = [];
   const er = el => e => { $(el).innerHTML = `<p class="err">${esc(fbErr(e))}</p>`; };
   dashUnsub.push(db.collection("verifications").where("status", "==", "pending").onSnapshot(s => {
-    $("dv").innerHTML = s.empty ? '<p class="mut">Aucune demande.</p>' : s.docs.map(d => { const v = d.data(); return `<div class="dr"><div><b>${esc(v.email)}</b> · code <b>${esc(v.code)}</b><br><a href="${esc(v.idUrl)}" target="_blank" rel="noopener">Pièce d'identité</a> · <a href="${esc(v.selfieUrl)}" target="_blank" rel="noopener">Selfie</a></div><button class="btn ok" data-a="${d.id}">Accepter</button><button class="btn ko" data-r="${d.id}">Refuser</button></div>`; }).join("");
+    $("dv").innerHTML = s.empty ? '<p class="mut">Aucune demande.</p>' : s.docs.map(d => { const v = d.data(); return `<div class="dr"><div><b>${esc(v.email)}</b> · code <b>${esc(v.code)}</b><div class="im">${["idImg", "selfieImg"].map(k => String(v[k] || "").startsWith("data:image/jpeg;base64,") ? `<img src="${v[k]}" alt="${k === "idImg" ? "Pièce d'identité" : "Selfie"}" title="Clique pour agrandir" onclick="this.classList.toggle('big')">` : "").join("")}</div></div><button class="btn ok" data-a="${d.id}">Accepter</button><button class="btn ko" data-r="${d.id}">Refuser</button></div>`; }).join("");
   }, er("dv")));
   dashUnsub.push(db.collection("orders").orderBy("createdAt", "desc").onSnapshot(s => {
     $("do").innerHTML = s.empty ? '<p class="mut">Aucune commande.</p>' : s.docs.map(d => { const o = d.data(); return `<div class="dr"><div><b>${esc(o.email)}</b> · ${euro(o.total || 0)}<br><small class="mut">${(o.items || []).map(i => esc(i.name || i.id) + (i.flav ? " (" + esc(i.flav) + ")" : "") + " ×" + i.n).join(", ")}</small></div><span class="pill">${esc(o.status)}</span>${o.status === "nouvelle" ? `<button class="btn alt" data-s="${d.id}">Expédiée</button>` : ""}</div>`; }).join("");
@@ -240,7 +252,7 @@ $("bDash").onclick = () => {
 $("dash").onclick = async e => {
   const b = e.target.closest("button"); if (!b) return; const d = b.dataset;
   try {
-    if (d.a || d.r) { const id = d.a || d.r, ok = !!d.a; await db.doc("verifications/" + id).update({ status: ok ? "approved" : "rejected" }); await db.doc("users/" + id).set({ verified: ok }, { merge: true }); toast(ok ? "Accepté ✓" : "Refusé", "ok"); }
+    if (d.a || d.r) { const id = d.a || d.r, ok = !!d.a; await db.doc("verifications/" + id).update({ status: ok ? "approved" : "rejected", idImg: firebase.firestore.FieldValue.delete(), selfieImg: firebase.firestore.FieldValue.delete() }); await db.doc("users/" + id).set({ verified: ok }, { merge: true }); toast(ok ? "Accepté ✓" : "Refusé", "ok"); }
     else if (d.s) await db.doc("orders/" + d.s).update({ status: "expédiée" });
   } catch (x) { toast(fbErr(x), "ko", 8000); }
 };
