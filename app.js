@@ -1,348 +1,155 @@
-let initializeApp, getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, OAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
-  getFirestore, doc, setDoc, onSnapshot, collection, query, where, updateDoc, serverTimestamp, getStorage, ref, uploadBytes, getDownloadURL;
-let app, auth, db, storage;
-const firebaseConfig = {
-  apiKey: "AIzaSyAO3ZNx7hAFG_qH0BfeSUIMQsRfonH-LXw",
-  authDomain: "vape-fc2ca.firebaseapp.com",
-  projectId: "vape-fc2ca",
-  storageBucket: "vape-fc2ca.firebasestorage.app",
-  messagingSenderId: "826171627240",
-  appId: "1:826171627240:web:68cb55f24238a68df29b5d",
-  measurementId: "G-SCXPMEKRRJ"
-};
-const ADMIN_EMAIL = "pc2alex.les@gmail.com";
-const FREE_FROM = 39, SHIPPING = 3.9;
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, OAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, addDoc, collection, onSnapshot, query, where, orderBy, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-const $ = id => document.getElementById(id);
-const store = {
-  get: k => { try { return localStorage.getItem(k); } catch { return null; } },
-  set: (k, v) => { try { localStorage.setItem(k, v); } catch {} }
+const firebaseConfig = {
+  apiKey: "AIzaSyAO3ZNx7hAFG_qH0BfeSUIMQsRfonH-LXw", authDomain: "vape-fc2ca.firebaseapp.com", projectId: "vape-fc2ca",
+  storageBucket: "vape-fc2ca.firebasestorage.app", messagingSenderId: "826171627240", appId: "1:826171627240:web:68cb55f24238a68df29b5d", measurementId: "G-SCXPMEKRRJ"
 };
+const ADMIN_EMAIL = "pc2alex.les@gmail.com", FREE_FROM = 39, SHIPPING = 3.9;
+const app = initializeApp(firebaseConfig), auth = getAuth(app), db = getFirestore(app), storage = getStorage(app);
+const $ = id => document.getElementById(id);
+const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
 const euro = n => n.toFixed(2).replace(".", ",") + " €";
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const norm = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-const tint = (h, a) => { const n = parseInt(h.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
-let status = "none";
 
-/* ============ Illustrations produits (SVG générés) ============ */
-function art(type, color, label = "") {
-  const L = esc(label.slice(0, 12)), D = "#0E2A2B", S = "rgba(255,255,255,.25)";
-  const shapes = {
-    bottle: `<rect x="178" y="44" width="44" height="30" rx="6" fill="${D}"/><rect x="186" y="74" width="28" height="16" fill="#2B4A4B"/>
-      <rect x="150" y="90" width="100" height="172" rx="24" fill="${color}"/><rect x="160" y="100" width="14" height="150" rx="7" fill="${S}"/>
-      <rect x="162" y="138" width="76" height="84" rx="10" fill="#fff"/><text x="200" y="174" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="14" fill="${D}">${L}</text>
-      <text x="200" y="198" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#587270">10 ml</text>`,
-    pod: `<rect x="160" y="38" width="80" height="224" rx="36" fill="${color}"/><rect x="170" y="60" width="12" height="180" rx="6" fill="${S}"/><rect x="176" y="38" width="48" height="56" rx="12" fill="${D}"/>
-      <rect x="186" y="54" width="28" height="24" rx="6" fill="rgba(255,255,255,.55)"/><circle cx="200" cy="196" r="15" fill="rgba(255,255,255,.75)"/><rect x="188" y="232" width="24" height="6" rx="3" fill="rgba(255,255,255,.6)"/>`,
-    hookah: `<rect x="190" y="30" width="20" height="30" rx="4" fill="${D}"/><path d="M162 60h76l-8 28h-60z" fill="${color}"/><rect x="194" y="88" width="12" height="64" fill="${D}"/>
-      <path d="M200 148c-60 0-86 42-86 76 0 22 32 38 86 38s86-16 86-38c0-34-26-76-86-76z" fill="${color}"/><path d="M150 190c10-22 26-30 40-34" stroke="${S}" stroke-width="8" fill="none" stroke-linecap="round"/>
-      <path d="M238 118c64 0 74 64 42 102" stroke="${D}" stroke-width="7" fill="none" stroke-linecap="round"/>`,
-    tin: `<rect x="114" y="82" width="172" height="150" fill="${color}"/><ellipse cx="200" cy="232" rx="86" ry="18" fill="${color}"/><ellipse cx="200" cy="82" rx="86" ry="18" fill="${D}"/>
-      <rect x="114" y="126" width="172" height="66" fill="#fff"/><text x="200" y="156" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="16" fill="${D}">${L}</text>
-      <text x="200" y="177" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#587270">sans tabac, sans nicotine</text>`,
-    bowl: `<path d="M118 112h164l-26 112a20 20 0 0 1-20 16h-68a20 20 0 0 1-20-16z" fill="${color}"/><ellipse cx="200" cy="112" rx="82" ry="17" fill="${D}"/>
-      <circle cx="170" cy="112" r="5" fill="#587270"/><circle cx="200" cy="114" r="5" fill="#587270"/><circle cx="230" cy="112" r="5" fill="#587270"/>`,
-    hose: `<path d="M64 226c44-116 124 44 164-62s84-44 104-96" stroke="${color}" stroke-width="16" fill="none" stroke-linecap="round"/>
-      <rect x="312" y="40" width="44" height="22" rx="8" fill="${D}" transform="rotate(-25 334 51)"/>`,
-    heater: `<rect x="128" y="64" width="144" height="156" rx="28" fill="${D}"/><circle cx="200" cy="140" r="44" fill="${color}"/><circle cx="200" cy="140" r="24" fill="rgba(255,255,255,.6)"/>
-      <rect x="168" y="220" width="64" height="18" rx="6" fill="#2B4A4B"/>`,
-    charcoal: `<g fill="#2B2F31"><rect x="118" y="150" width="72" height="72" rx="8" transform="rotate(-8 154 186)"/><rect x="206" y="140" width="72" height="72" rx="8" transform="rotate(6 242 176)"/><rect x="164" y="92" width="72" height="72" rx="8" transform="rotate(-2 200 128)"/></g>
-      <circle cx="150" cy="176" r="5" fill="#E8735A"/><circle cx="246" cy="168" r="4" fill="#F2A93B"/><circle cx="196" cy="120" r="4" fill="#E8735A"/>`,
-    box: `<rect x="128" y="78" width="144" height="134" rx="20" fill="${color}"/><path d="M128 128h144" stroke="rgba(255,255,255,.6)" stroke-width="6"/><circle cx="200" cy="170" r="16" fill="rgba(255,255,255,.75)"/>`
-  };
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${tint(color, .35)}"/><stop offset="1" stop-color="${tint(color, .08)}"/></linearGradient></defs>
-    <rect width="400" height="300" fill="url(#g)"/><circle cx="330" cy="62" r="92" fill="${tint(color, .16)}"/><circle cx="50" cy="260" r="60" fill="${tint(color, .12)}"/><ellipse cx="200" cy="268" rx="90" ry="9" fill="rgba(14,42,43,.14)"/>${shapes[type] || shapes.box}</svg>`;
-  return "data:image/svg+xml," + encodeURIComponent(svg);
-}
-
-/* ============ Catalogue (modifie noms, prix, descriptions ici) ============ */
-const CATS = [["all", "Tout"], ["eliquides", "E-liquides"], ["pods", "Kits pod"], ["melanges", "Mélanges sans tabac"], ["chichas", "Chichas"], ["chauffe", "Chauffe & charbon"], ["acc", "Accessoires"]];
+/* ===== PRODUITS ===== */
+const FL = ["Berry Passion Tangy Fizz","Black Dragon Ice","Blackberry Red Raspberry","Blue Razz Cherry","Blue Razz Ice","Blueberry Kiwi","Blueberry Pomegranate Ice","Blueberry Raspberry Cherry","Blueberry Red Raspberry","Cherry","Cherry Berry","Cherry Lemon","Cherry Strawberry Raspberry","Cherry Watermelon Freeze","Cola Ice","Dragon Fruit","Fabublue","Fizzy Cherry Cola","Fizzy Strawberry Strips","Fresh Strawberry","Frosted Mint Burst","Grapefruit Lemonade Ice","Green Apple Peach Pear","Hawaii","Hubba Bubba Strawberry","Juicy Peaches","Kiwi Passion Fruit Guava","Love 66","Mango Passion Fruit","Mi Amor","Peach Berry","Raspberry Rhubarb","Red Punch","Sakura Grape","Sour Cherry Gummy","Sparkling Cherry","Strawberry Apple Pear","Strawberry Banana","Strawberry Ice","Strawberry Kiwi","Strawberry Pinacolada","Strawberry Red Bull","Strawberry Watermelon Ice","Summer Peach Ice","Tiger Blood","Tropicana Zest","VC Boost","Watermelon Mango Peach","White Peach Razz","Zesty Marmalade Crunch"];
+const U = "https://jnr16k.fr/wp-content/uploads/2026/07/JNR-Falcon-16K-Showcase-";
 const TIPS = {
-  eliquides: "Baisser la nicotine par paliers (18, 12, 6, 3 puis 0 mg) aide à réduire la dépendance.",
-  pods: "Tu choisis ta dose de nicotine et tu peux la baisser avec le temps. Rechargeable, donc moins de déchets.",
-  melanges: "Moins nocif ne veut pas dire sans risque : la combustion produit toujours du monoxyde de carbone.",
-  chauffe: "Le charbon est la principale source de monoxyde de carbone d'une séance de chicha.",
-  chichas: "Une séance de chicha dure souvent longtemps : fais des pauses et aère la pièce.",
-  acc: "Aucun accessoire ne rend la chicha ou la vape inoffensive. L'objectif reste de réduire."
+  Puffs: "Préférez un modèle à faible taux de nicotine (ou 0 mg) et fixez-vous une limite de bouffées par jour.",
+  "E-liquides": "Les e-liquides en 3 ou 6 mg sont plus doux que les 20 mg des jetables ; baissez progressivement.",
+  Kits: "Un kit rechargeable est plus économique et réduit les déchets par rapport aux jetables.",
+  Chicha: "La chicha classique brûle du charbon (monoxyde de carbone). Les alternatives électroniques évitent la combustion.",
+  Accessoires: "Changez vos résistances/coton régulièrement pour une vape plus propre."
 };
-const P = [];
-const add = (cat, name, brand, desc, type, color, v, x = {}) => {
-  const id = "p" + (P.length + 1);
-  P.push({ id, cat, name, brand, desc, type, color, v, lab: name.split(" ")[0], ...x });
-  return id;
-};
+const P = [{ id: "jnr-falcon-16k", name: "JNR Falcon 16K", cat: "Puffs", price: 12.9, tiers: { 3: 36.38, 5: 58.05, 10: 108.36 }, flav: FL, tag: "🔥 Best-seller",
+  img: ["Main", "01", "02", "03", "04", "05", "06", "07"].map(s => U + s + ".webp").concat("https://jnr16k.fr/wp-content/uploads/2026/06/jnr-falcon-16k-emballer.webp"),
+  video: "https://jnr16k.fr/wp-content/uploads/2026/06/JNR-Falcon-16K-Showcase.mp4", emoji: "💨",
+  desc: "Puffs rechargeable jusqu'à 16 000 bouffées, écran de contrôle, 48 saveurs au choix. Choisissez votre goût dans la liste déroulante.", alt: "kit-pod-debutant" }];
+// Lignes à variantes : [nom, catégorie, prix, emoji, nb goûts, décalage, description]
+[["Elfbar BC5000","Puffs",9.9,"💨",12,0],["Lost Mary BM600","Puffs",6.9,"💨",12,4],["Geek Bar Pulse 15K","Puffs",12.5,"💨",12,9],["Vozol Star 20K","Puffs",13.9,"💨",12,14],["Puff Flex 2800","Puffs",8.5,"💨",10,20],["Crystal Pro Max 4000","Puffs",8.9,"💨",10,26],["Puffmi Max 9K","Puffs",10.9,"💨",10,31],["Liquideo Fruits 50ml","E-liquides",8.9,"🧪",12,2],["Fuu Shortfill 50ml","E-liquides",9.5,"🧪",10,12],["Sels de nicotine 10ml","E-liquides",3.9,"🧪",12,18],["Base 0 mg DIY 100ml","E-liquides",12.9,"🧪",6,22],["Chicha électronique Fumytech","Chicha",14.9,"🌫️",10,3],["Pods Vuse compatibles ×2","Accessoires",6.5,"🔋",8,10],["Pods Aspire Vilter ×2","Accessoires",7.9,"🔋",8,16]]
+  .forEach(([name, cat, price, emoji, n, o]) => P.push({ id: norm(name).replace(/\W+/g, "-"), name, cat, price, emoji, flav: Array.from({ length: n }, (_, i) => FL[(o + i) % FL.length]), img: [], tiers: { 3: +(price * 3 * .94).toFixed(2), 5: +(price * 5 * .9).toFixed(2), 10: +(price * 10 * .85).toFixed(2) }, desc: `${name} : qualité constante, ${n} saveurs, livraison rapide. Description détaillée à personnaliser.`, alt: cat === "Puffs" ? "base-0-mg-diy-100ml" : null }));
+// Produits simples (sans goût)
+[["Kit Pod Débutant 800 mAh","Kits",19.9,"🔌"],["Kit Aspire Vilter Pro","Kits",24.9,"🔌"],["Kit Vaporesso Xros 3","Kits",27.9,"🔌"],["Kit Smok Novo 5","Kits",22.9,"🔌"],["Kit Geekvape Wenax","Kits",25.9,"🔌"],["Kit Innokin Endura T18","Kits",21.9,"🔌"],["Résistances Xros ×4","Accessoires",9.9,"🔧"],["Coton Cotton Bacon","Accessoires",5.9,"🔧"],["Câble USB-C charge rapide","Accessoires",3.9,"🔌"],["Pack 5 Pods Xros","Accessoires",11.9,"🔋"],["Tuyau chicha silicone","Chicha",9.9,"🌫️"],["Chicha complète 45 cm","Chicha",39.9,"🌫️"],["Charbon naturel 1 kg","Chicha",7.9,"🌫️"],["Cheminée chicha alu","Chicha",5.9,"🌫️"],["Embout chicha ×5","Chicha",4.9,"🌫️"]]
+  .forEach(([name, cat, price, emoji]) => P.push({ id: norm(name).replace(/\W+/g, "-"), name, cat, price, emoji, flav: null, img: [], tiers: { 3: +(price * 3 * .95).toFixed(2), 5: +(price * 5 * .92).toFixed(2), 10: +(price * 10 * .88).toFixed(2) }, desc: `${name} : description à personnaliser.` }));
+P.forEach(p => p.tip = p.tip || TIPS[p.cat]);
+const byId = id => P.find(p => p.id === id);
 
-// E-liquides : 24 goûts x 5 dosages
-const STY = ["fruité et frais", "gourmand", "pétillant", "doux et rond", "glacé", "acidulé"];
-const FL = [["Fraise Glacée", "#E85D75"], ["Pastèque Menthe", "#4FB286"], ["Mangue Passion", "#F2A93B"], ["Cola Citron", "#8A5A3C"], ["Myrtille Givrée", "#5B6FD6"], ["Raisin Blanc", "#B7C95A"],
-  ["Pêche Thé Glacé", "#F4A77B"], ["Ananas Coco", "#E9CB3F"], ["Menthe Polaire", "#3FB6B0"], ["Framboise Bleue", "#3E7CD9"], ["Kiwi Citron Vert", "#7BC043"], ["Cerise Noire", "#8E2441"],
-  ["Banane Crème", "#E6D071"], ["Citron Meringué", "#EBD960"], ["Melon Miel", "#9ED36A"], ["Cassis Réglisse", "#5A3E7A"], ["Pomme Verte", "#8CC63F"], ["Litchi Rose", "#EE88AB"],
-  ["Café Noisette", "#8A5A3C"], ["Vanille Caramel", "#D9A441"], ["Blond Doux", "#B88B4A"], ["Orange Sanguine", "#E2582D"], ["Grenade Cranberry", "#B22A4A"], ["Eau de Coco", "#7FC4C0"]];
-FL.forEach(([n, c], i) => {
-  const jnr = i < 12, base = jnr ? 3.9 : 3.5;
-  add("eliquides", n, jnr ? "JNR" : "Plus Léger", `E-liquide ${STY[i % STY.length]} au goût ${n.toLowerCase()}. Flacon de 10 ml, 50/50 PG/VG.`, "bottle", c,
-    [0, 3, 6, 12, 18].map(m => ({ l: m + " mg", p: base, nic: m })), { light: true, badge: "De 0 à 18 mg", defNic: 6 });
+/* ===== ÉTAT ===== */
+let cat = "Tous", cart = JSON.parse(store.get("cart") || "[]"), user = null, verified = false, cur = null, qty = 1, vcode = "";
+const hue = s => [...s].reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
+const ph = (p, big) => p.img[0] ? `style="background-image:url('${p.img[0]}')"` : `style="background:linear-gradient(135deg,hsl(${hue(p.name)},70%,35%),hsl(${hue(p.name) + 50},70%,20%))"`;
+const open = id => $(id).classList.add("on"), shut = id => $(id).classList.remove("on");
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => b.closest(".ov").classList.remove("on"));
+
+/* ===== ÂGE & COOKIES ===== */
+if (store.get("age18") === "1") $("age").remove();
+$("ageYes").onclick = () => { store.set("age18", "1"); $("age").remove(); };
+$("ageNo").onclick = () => $("ageMsg").textContent = "Désolé, l'accès est réservé aux majeurs.";
+if (!store.get("cookies")) $("cookie").style.display = "flex";
+$("ck1").onclick = () => { store.set("cookies", "yes"); $("cookie").style.display = "none"; };
+$("ck0").onclick = () => { store.set("cookies", "no"); $("cookie").style.display = "none"; };
+
+/* ===== CATALOGUE ===== */
+const cats = ["Tous", ...new Set(P.map(p => p.cat))];
+function render() {
+  $("chips").innerHTML = cats.map(c => `<button class="chip ${c === cat ? "on" : ""}" data-c="${c}">${c}</button>`).join("");
+  document.querySelectorAll("[data-c]").forEach(b => b.onclick = () => { cat = b.dataset.c; render(); });
+  const q = norm($("q").value);
+  let l = P.filter(p => (cat === "Tous" || p.cat === cat) && (!q || norm(p.name + " " + (p.flav || []).join(" ")).includes(q)));
+  if ($("sort").value) l.sort((a, b) => $("sort").value === "a" ? a.price - b.price : b.price - a.price);
+  const variants = l.reduce((s, p) => s + (p.flav ? p.flav.length : 1), 0);
+  $("count").textContent = `${l.length} produits · ${variants} références`;
+  $("grid").innerHTML = l.map(p => `<div class="card" data-id="${p.id}"><div class="ph" ${ph(p)}>${p.img[0] ? "" : p.emoji}</div>${p.tag ? `<span class="tag">${p.tag}</span>` : ""}<div class="in"><small>${p.cat}${p.flav ? " · " + p.flav.length + " goûts" : ""}</small><h3>${esc(p.name)}</h3><div class="price">${euro(p.price)}</div></div></div>`).join("");
+  document.querySelectorAll(".card").forEach(c => c.onclick = () => showP(c.dataset.id));
+}
+$("q").oninput = $("sort").onchange = render;
+
+function showP(id) {
+  cur = byId(id); qty = 1;
+  const p = cur, alt = p.alt && byId(p.alt);
+  $("pmb").innerHTML = `<div class="pm"><div><div class="main" id="mn" ${ph(p)}>${p.img[0] ? "" : p.emoji}</div>${p.img.length > 1 ? `<div class="th">${p.img.map(u => `<div data-u="${u}" style="background-image:url('${u}')"></div>`).join("")}</div>` : ""}${p.video ? `<video src="${p.video}" controls muted playsinline></video>` : ""}</div>
+  <div class="stack"><small class="mut">${p.cat}</small><h2>${esc(p.name)}</h2><div class="price" style="font-size:28px">${euro(p.price)} <small class="mut" style="font-size:12px">TTC</small></div><p class="mut">${esc(p.desc)}</p>
+  ${p.flav ? `<label>Goût<select id="fv">${p.flav.map(f => `<option>${esc(f)}</option>`).join("")}</select></label>` : ""}
+  <div class="tiers" id="tr">${[[1, p.price], [3, p.tiers[3]], [5, p.tiers[5]], [10, p.tiers[10]]].map(([n, t]) => `<div class="tier ${n === 1 ? "on" : ""}" data-n="${n}"><b>×${n}</b><br>${euro(t)}<br><small class="mut">${euro(t / n)}/u</small></div>`).join("")}</div>
+  <div class="tip">💚 <b>Conseil santé :</b> ${esc(p.tip || "")}${alt ? `<br>👉 Alternative : <a href="#" id="altl" style="color:var(--acc2)">${esc(alt.name)}</a>` : ""}</div>
+  <button class="btn" id="add" style="width:100%">Ajouter au panier</button></div></div>`;
+  document.querySelectorAll("[data-u]").forEach(d => d.onclick = () => { $("mn").style.backgroundImage = `url('${d.dataset.u}')`; });
+  document.querySelectorAll(".tier").forEach(t => t.onclick = () => { qty = +t.dataset.n; document.querySelectorAll(".tier").forEach(x => x.classList.toggle("on", x === t)); });
+  if (alt) $("altl").onclick = e => { e.preventDefault(); showP(alt.id); };
+  $("add").onclick = () => { addCart(p.id, p.flav ? $("fv").value : "", qty); shut("pm"); open("cart"); $("cart").classList.add("on"); drawCart(); };
+  open("pm");
+}
+
+/* ===== PANIER ===== */
+const unit = (p, n) => n >= 10 ? p.tiers[10] / 10 : n >= 5 ? p.tiers[5] / 5 : n >= 3 ? p.tiers[3] / 3 : p.price;
+function addCart(id, flav, n) { const l = cart.find(x => x.id === id && x.flav === flav); l ? l.n += n : cart.push({ id, flav, n }); save(); }
+function save() { store.set("cart", JSON.stringify(cart)); $("cn").textContent = cart.reduce((s, l) => s + l.n, 0); }
+function totals() { const sub = cart.reduce((s, l) => { const p = byId(l.id), tot = cart.filter(x => x.id === l.id).reduce((a, x) => a + x.n, 0); return s + unit(p, tot) * l.n; }, 0); return { sub, ship: !cart.length || sub >= FREE_FROM ? 0 : SHIPPING }; }
+function drawCart() {
+  $("cl").innerHTML = cart.length ? cart.map((l, i) => `<div class="row"><div><b>${esc(byId(l.id).name)}</b><br><small class="mut">${esc(l.flav)}</small></div><button class="btn alt" data-m="${i}">−</button>${l.n}<button class="btn alt" data-p="${i}">+</button></div>`).join("") : '<p class="mut">Votre panier est vide.</p>';
+  document.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { const l = cart[b.dataset.m]; if (--l.n <= 0) cart.splice(b.dataset.m, 1); save(); drawCart(); });
+  document.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { cart[b.dataset.p].n++; save(); drawCart(); });
+  const t = totals();
+  $("ct").innerHTML = `<div class="row"><div>Sous-total</div>${euro(t.sub)}</div><div class="row"><div>Livraison</div>${t.ship ? euro(t.ship) : "Offerte"}</div><div class="row"><div><b>Total</b></div><b>${euro(t.sub + t.ship)}</b></div><button class="btn" id="ord" style="width:100%">Commander</button>`;
+  $("ord").onclick = order;
+}
+$("bCart").onclick = () => { $("cart").classList.add("on"); drawCart(); };
+$("cx").onclick = () => $("cart").classList.remove("on");
+
+async function order() {
+  if (!cart.length) return;
+  if (!user) { open("auth"); return; }
+  if (!verified) { vcode = Math.floor(1000 + Math.random() * 9000) + Array.from({ length: 3 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ"[Math.random() * 24 | 0]).join(""); $("code").textContent = vcode; open("idv"); return; }
+  const t = totals();
+  await addDoc(collection(db, "orders"), { uid: user.uid, email: user.email, items: cart, total: +(t.sub + t.ship).toFixed(2), status: "nouvelle", createdAt: serverTimestamp() });
+  cart = []; save(); drawCart(); alert("Commande envoyée ✅ Merci !");
+}
+
+/* ===== AUTH ===== */
+$("bAcc").onclick = () => user ? signOut(auth) : open("auth");
+const run = async fn => { try { await fn(); shut("auth"); } catch (e) { $("am").textContent = e.message; } };
+$("gG").onclick = () => run(() => signInWithPopup(auth, new GoogleAuthProvider()));
+$("gA").onclick = () => run(() => signInWithPopup(auth, new OAuthProvider("apple.com")));
+$("li").onclick = () => run(() => signInWithEmailAndPassword(auth, $("em").value, $("pw").value));
+$("su").onclick = () => run(() => createUserWithEmailAndPassword(auth, $("em").value, $("pw").value));
+let unsubs = [];
+onAuthStateChanged(auth, async u => {
+  user = u; unsubs.forEach(f => f()); unsubs = [];
+  $("bAcc").textContent = u ? "Déconnexion" : "Connexion";
+  $("bDash").style.display = u && u.email === ADMIN_EMAIL ? "" : "none";
+  verified = false;
+  if (u) { const s = await getDoc(doc(db, "users", u.uid)); verified = !!(s.exists() && s.data().verified); }
 });
 
-// Kits pod, pods, résistances, accessoires vape
-const KC = [{ l: "Noir", c: "#2B3A3B" }, { l: "Menthe", c: "#4FA38A" }, { l: "Corail", c: "#E8735A" }, { l: "Bleu nuit", c: "#2F4A8A" }];
-const KITS = ["Nova", "Lune", "Brume", "Zéphyr", "Alba", "Onyx", "Opale", "Cirrus"];
-KITS.forEach((n, i) => add("pods", "Kit pod " + n, "Plus Léger", "Kit pod rechargeable en USB-C, prêt à l'emploi. Tu choisis ta dose de nicotine et tu la baisses avec le temps.", "pod", "#4FA38A",
-  KC.map(c => ({ ...c, p: +(14.9 + i).toFixed(2) })), { light: true, badge: "Rechargeable" }));
-KITS.forEach(n => add("pods", `Pods ${n} (x2)`, "Plus Léger", `Deux pods de rechange compatibles avec le kit pod ${n}. À remplir avec l'e-liquide de ton choix.`, "pod", "#5B8DEF", [{ l: "x2", p: 4.9 }, { l: "x4", p: 8.9 }]));
-add("pods", "Résistances mesh 0,6 Ω (x5)", "Plus Léger", "Résistances de rechange pour une vapeur régulière et un goût net.", "box", "#9A8F86", [{ l: "x5", p: 7.9 }]);
-add("pods", "Résistances mesh 0,8 Ω (x5)", "Plus Léger", "Un peu plus douce, adaptée aux dosages de nicotine plus bas.", "box", "#8FA9A6", [{ l: "x5", p: 7.9 }]);
-[["Câble USB-C 1 m", 3.5, "Câble de recharge robuste pour tous les kits pod USB-C.", "#4F6D7A"], ["Chargeur secteur USB-C", 5.9, "Chargeur compact, un seul port.", "#7A8B99"],
- ["Étui de transport", 6.9, "Étui rigide pour ton kit, deux pods et un câble.", "#E8735A"], ["Lanyard de protection", 2.9, "Cordon réglable, pour ne plus perdre ton kit.", "#F2A93B"],
- ["Support de bureau", 7.9, "Pose ton kit à la verticale, à l'abri de la poussière.", "#4FA38A"], ["Kit de nettoyage", 4.9, "Cotons-tiges et lingettes pour entretenir ton kit.", "#9ED36A"]]
-  .forEach(([n, p, d, c]) => add("pods", n, "Plus Léger", d, "box", c, [{ l: "Standard", p }]));
-
-// Chichas
-const HK = ["Kyoto", "Marrakech", "Istanbul", "Oslo", "Dubaï", "Lisbonne", "Tanger", "Séoul"];
-const HC = ["#C26A3D", "#3F7F8C", "#7A5BA8", "#4B6B4F", "#C2A13D", "#B24A5C", "#2F4A8A", "#8A8F96"];
-HK.forEach((n, i) => { const p = +(24.9 + i * 3).toFixed(2);
-  add("chichas", "Chicha " + n, "Plus Léger", "Chicha complète : vase, tige, bol, tuyau et pince. Se démonte pour se nettoyer facilement.", "hookah", HC[i],
-    [{ l: "45 cm", p }, { l: "60 cm", p: p + 8 }, { l: "75 cm", p: p + 16 }]); });
-
-// Mélanges sans tabac ni nicotine
-const MF = [["Double Pomme", "#B3402F"], ["Menthe Glaciale", "#3FB6B0"], ["Pastèque Fraîche", "#4FB286"], ["Raisin Menthe", "#7A5BA8"], ["Citron Vert", "#8CC63F"], ["Pêche Abricot", "#F4A77B"],
-  ["Mangue", "#F2A93B"], ["Fraise Kiwi", "#E85D75"], ["Myrtille", "#5B6FD6"], ["Ananas", "#E9CB3F"], ["Cerise", "#8E2441"], ["Melon", "#9ED36A"], ["Litchi Rose", "#EE88AB"],
-  ["Cola", "#8A5A3C"], ["Orange Cannelle", "#E2582D"], ["Cactus Poire", "#7BC043"], ["Passion Goyave", "#E8735A"], ["Noix de Coco", "#7FC4C0"], ["Gomme Rose", "#F08FB0"], ["Thé Glacé", "#C9A15B"]];
-MF.forEach(([n, c]) => add("melanges", n, "Plus Léger", `Mélange sans tabac ni nicotine, goût ${n.toLowerCase()}. Pour chicha classique ou avec un chauffe-chicha.`, "tin", c,
-  [{ l: "50 g", p: 4.5 }, { l: "200 g", p: 13.9 }, { l: "1 kg", p: 49 }], { light: true, badge: "Sans tabac" }));
-
-// Chauffe-chicha et charbon
-const HT = [["Éclat", 19.9, "#F2A93B"], ["Éclat Pro", 29.9, "#E8735A"], ["Compact", 16.9, "#4FA38A"], ["Duo", 34.9, "#B24A5C"]];
-const heaterIds = HT.map(([n, p, c]) => add("chauffe", "Chauffe-chicha " + n, "Plus Léger", "Chauffe électrique : plus de charbon, donc plus de monoxyde de carbone venant du charbon. Réglage de la température.", "heater", c,
-  [{ l: "Standard", p }], { light: true, badge: "Sans charbon" }));
-["Coco (cubes)", "Coco (plat)", "Naturel (rapide)"].forEach((n, i) => add("chauffe", "Charbon naturel " + n, "Plus Léger", "Charbon naturel, brûle longtemps. Il dégage du monoxyde de carbone.", "charcoal", "#6E7B7A",
-  [{ l: "500 g", p: 2.9 + i * .3 }, { l: "1 kg", p: 4.5 + i * .4 }, { l: "3 kg", p: 11.9 + i }], { better: heaterIds[i % heaterIds.length], badge: "Il existe plus léger" }));
-
-// Bols, tuyaux, accessoires chicha
-[["Bol silicone", 4.5, "Bol souple, se nettoie à l'eau."], ["Bol céramique", 6.9, "Bol classique, bonne tenue à la chaleur."], ["Bol pierre", 7.9, "Pierre naturelle, diffuse la chaleur de façon régulière."],
- ["Bol phunnel", 8.9, "Bol à cheminée centrale, pour une chaleur uniforme."], ["Bol vortex", 9.9, "Dessin hélicoïdal, pour limiter les pertes."], ["Bol grille", 5.9, "Grille inox fine, pratique avec les mélanges sans tabac."]]
-  .forEach(([n, p, d], i) => add("acc", n, "Plus Léger", d, "bowl", HC[i], [{ l: "Noir", p, c: "#2B3A3B" }, { l: "Terre", p, c: "#C26A3D" }, { l: "Vert", p, c: "#4B6B4F" }]));
-[["Tuyau silicone lavable", 9.9, "Se lave à l'eau chaude, sans goût résiduel.", "#4FA38A"], ["Tuyau cuir", 13.9, "Finition cuir, embout métal.", "#8A5A3C"], ["Tuyau lumineux", 11.9, "LED intégrée, rechargeable en USB-C.", "#5B8DEF"],
- ["Embouts jetables (x50)", 3.5, "Un embout par personne, pour partager sans partager.", "#7FC4C0"], ["Embout verre", 5.9, "Embout lavable, réutilisable.", "#9ED36A"], ["Tuyau court voyage", 7.9, "Format compact pour la mallette.", "#E8735A"]]
-  .forEach(([n, p, d, c]) => add("acc", n, "Plus Léger", d, "hose", c, [{ l: "Standard", p }]));
-[["Brosses de nettoyage", 3.5, "Brosses pour tige et tuyau."], ["Pinces inox", 4.5, "Pour manipuler le bol sans te brûler."], ["Joints silicone (x10)", 2.9, "Joints de rechange pour une chicha bien étanche."],
- ["Housse de chicha", 9.9, "Housse rembourrée pour le transport."], ["Plateau récupérateur", 7.9, "Garde la table propre."], ["Base verre de rechange", 11.9, "Vase de remplacement."],
- ["Papier alu pré-percé (x100)", 2.5, "Feuilles prêtes à l'emploi pour bol à grille."], ["Mallette de transport", 24.9, "Mallette rigide avec mousse sur mesure."]]
-  .forEach(([n, p, d], i) => add("acc", n, "Plus Léger", d, "box", HC[(i + 3) % HC.length], [{ l: "Standard", p }]));
-
-const byId = Object.fromEntries(P.map(p => [p.id, p]));
-const minP = p => Math.min(...p.v.map(x => x.p));
-const cache = {};
-const img = (p, c) => cache[p.id + (c || "")] ??= art(p.type, c || p.color, p.lab);
-
-/* ============ Porte 18+ ============ */
-const gate = $("gate");
-if (store.get("age18") === "1") gate.classList.add("hidden");
-$("yes").onclick = () => { store.set("age18", "1"); gate.classList.add("hidden"); };
-$("no").onclick = () => { $("gateMsg").textContent = "Désolé, ce site est réservé aux personnes majeures."; $("gateBtns").classList.add("hidden"); };
-
-/* ============ Cookies ============ */
-async function startAnalytics() {
-  if (!app) return;
-  try { const { getAnalytics } = await import("https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js"); getAnalytics(app); } catch {}
-}
-const ck = store.get("cookies");
-if (!ck) $("cookies").style.display = "grid";
-$("ckYes").onclick = () => { store.set("cookies", "yes"); $("cookies").style.display = "none"; if (app) startAnalytics(); };
-$("ckNo").onclick = () => { store.set("cookies", "no"); $("cookies").style.display = "none"; };
-$("cookieLink").onclick = e => { e.preventDefault(); $("cookies").style.display = "grid"; };
-
-/* ============ Catalogue ============ */
-let cat = "all";
-$("heroA").src = art("bottle", "#8FA9A6", "18 mg");
-$("heroB").src = art("bottle", "#F2A93B", "6 mg");
-$("chips").innerHTML = CATS.map(([id, l]) => `<button data-c="${id}" aria-pressed="${id === "all"}">${l}</button>`).join("");
-$("chips").onclick = e => { const b = e.target.closest("button"); if (!b) return; cat = b.dataset.c;
-  $("chips").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); renderShop(); };
-["q", "sort", "onlyLight"].forEach(id => $(id).addEventListener("input", renderShop));
-$("seeAll").onclick = () => $("catalogue").scrollIntoView();
-$("seeLight").onclick = () => { $("onlyLight").checked = true; renderShop(); $("catalogue").scrollIntoView(); };
-
-function renderShop() {
-  const q = norm($("q").value.trim()), sort = $("sort").value, light = $("onlyLight").checked;
-  const list = P.filter(p => (cat === "all" || p.cat === cat) && (!light || p.light) && (!q || norm(`${p.name} ${p.brand} ${p.desc}`).includes(q)));
-  if (sort === "asc") list.sort((a, b) => minP(a) - minP(b)); else if (sort === "desc") list.sort((a, b) => minP(b) - minP(a));
-  $("count").textContent = `${list.length} produit${list.length > 1 ? "s" : ""}`;
-  $("shop").innerHTML = list.length ? list.map(p => {
-    const multi = p.v.some(x => x.p !== p.v[0].p);
-    return `<article class="card${p.light ? " light" : ""}">
-      <div class="thumb"><img src="${img(p)}" alt="${esc(p.name)}" loading="lazy">${p.badge ? `<span class="badge">${esc(p.badge)}</span>` : ""}</div>
-      <div class="info"><p class="brand">${esc(p.brand)}</p><h3><button data-id="${p.id}">${esc(p.name)}</button></h3><p class="d">${esc(p.desc)}</p>
-      <div class="foot"><span class="price">${multi ? "<small>dès</small>" : ""}${euro(minP(p))}</span><span class="more">${p.v.length > 1 ? p.v.length + " variantes" : ""}</span></div></div></article>`;
-  }).join("") : `<p class="empty">Aucun produit ne correspond. Essaie un autre mot.</p>`;
-}
-$("shop").onclick = e => { const b = e.target.closest("button[data-id]"); if (b) openProduct(b.dataset.id); };
-renderShop();
-
-/* ============ Fiche produit ============ */
-let cur = null;
-const pDlg = $("pDlg");
-function openProduct(id) {
-  const p = byId[id];
-  cur = { p, vi: Math.max(0, p.v.findIndex(v => v.nic === p.defNic)), q: 1 };
-  $("pBrand").textContent = p.brand; $("pName").textContent = p.name; $("pDesc").textContent = p.desc; $("pTip").textContent = TIPS[p.cat];
-  const b = p.better && byId[p.better];
-  $("pBetter").innerHTML = b ? `<div class="better"><img src="${img(b)}" alt=""><p><strong>Version plus légère</strong><br>${esc(b.name)}, dès ${euro(minP(b))}</p><button class="amber" data-b="${b.id}">Voir</button></div>` : "";
-  paintProduct();
-  if (!pDlg.open) pDlg.showModal();
-}
-function paintProduct() {
-  const { p, vi, q } = cur, v = p.v[vi];
-  $("pImg").src = img(p, v.c); $("pImg").alt = p.name;
-  $("pVars").innerHTML = p.v.length > 1 ? p.v.map((x, i) => `<button data-i="${i}" aria-pressed="${i === vi}">${x.c ? `<i style="background:${x.c}"></i>` : ""}${esc(x.l)}</button>`).join("") : "";
-  const high = v.nic >= 12;
-  $("pNudge").classList.toggle("on", high);
-  $("pNudge").textContent = high ? "Astuce : à 6 mg ou moins, tu réduis ta dépendance. Tu peux descendre par paliers." : "";
-  $("pPrice").textContent = euro(v.p * q); $("qn").textContent = q;
-}
-$("pVars").onclick = e => { const b = e.target.closest("button"); if (b) { cur.vi = +b.dataset.i; paintProduct(); } };
-$("qm").onclick = () => { cur.q = Math.max(1, cur.q - 1); paintProduct(); };
-$("qp").onclick = () => { cur.q = Math.min(20, cur.q + 1); paintProduct(); };
-$("pBetter").onclick = e => { const b = e.target.closest("button[data-b]"); if (b) openProduct(b.dataset.b); };
-$("pClose").onclick = () => pDlg.close();
-$("pAdd").onclick = () => {
-  const { p, vi, q } = cur, line = cart.find(l => l.id === p.id && l.vi === vi);
-  if (line) line.q = Math.min(20, line.q + q); else cart.push({ id: p.id, vi, q });
-  saveCart(); toast("Ajouté au panier"); pDlg.close();
-};
-[pDlg, $("cartDlg"), $("authDlg")].forEach(d => d.addEventListener("click", e => { if (e.target === d) d.close(); }));
-let tt; function toast(m) { const t = $("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), 1800); }
-
-/* ============ Panier ============ */
-let cart = [];
-try { cart = JSON.parse(store.get("cart") || "[]"); } catch {}
-cart = cart.filter(l => l && byId[l.id] && byId[l.id].v[l.vi] && l.q > 0);
-function saveCart() { store.set("cart", JSON.stringify(cart)); $("cartN").textContent = cart.reduce((s, l) => s + l.q, 0); }
-saveCart();
-function renderCart() {
-  const box = $("cartList"); $("cartErr").textContent = "";
-  if (!cart.length) { box.innerHTML = `<p class="empty">Ton panier est vide. Ajoute un produit depuis le catalogue.</p>`; return; }
-  const sub = cart.reduce((s, l) => s + byId[l.id].v[l.vi].p * l.q, 0), ship = sub >= FREE_FROM ? 0 : SHIPPING;
-  box.innerHTML = cart.map((l, i) => { const p = byId[l.id], v = p.v[l.vi];
-    const lower = v.nic >= 12 ? p.v.findIndex(x => x.nic === 6) : -1;
-    const sw = lower >= 0 ? `<div class="sw"><span>Plus léger : le même goût en 6 mg</span><button class="amber" data-a="n" data-i="${i}" data-n="${lower}">Passer à 6 mg</button></div>`
-      : (p.better ? `<div class="sw"><span>Plus léger : ${esc(byId[p.better].name)}</span><button class="amber" data-a="b" data-i="${i}">Voir</button></div>` : "");
-    return `<div class="line"><img src="${img(p, v.c)}" alt=""><div>${esc(p.name)}<small>${p.v.length > 1 ? esc(v.l) + " · " : ""}${euro(v.p)}</small>
-      <div class="qty"><button class="ghost" data-a="m" data-i="${i}" aria-label="Moins">−</button><span>${l.q}</span><button class="ghost" data-a="p" data-i="${i}" aria-label="Plus">+</button></div></div>
-      <button class="ghost" data-a="x" data-i="${i}">Retirer</button>${sw}</div>`; }).join("") +
-    `<div class="bar2" aria-hidden="true"><span style="width:${Math.min(100, sub / FREE_FROM * 100)}%"></span></div>
-     <p style="margin:0;font-size:.9rem">${sub >= FREE_FROM ? "Livraison offerte" : `Encore ${euro(FREE_FROM - sub)} pour la livraison offerte`}</p>
-     <div class="sum"><div><span>Sous-total</span><span>${euro(sub)}</span></div><div><span>Livraison</span><span>${ship ? euro(ship) : "Offerte"}</span></div><div class="price"><span>Total</span><span>${euro(sub + ship)}</span></div></div>`;
-}
-$("cartList").onclick = e => { const b = e.target.closest("button[data-a]"); if (!b) return; const i = +b.dataset.i, l = cart[i], a = b.dataset.a;
-  if (a === "b") { $("cartDlg").close(); openProduct(byId[l.id].better); return; }
-  if (a === "n") l.vi = +b.dataset.n;
-  else if (a === "x" || (a === "m" && l.q === 1)) cart.splice(i, 1); else l.q = Math.min(20, l.q + (a === "p" ? 1 : -1));
-  saveCart(); renderCart(); };
-$("cartBtn").onclick = () => { renderCart(); $("cartDlg").showModal(); };
-$("cartClose").onclick = () => $("cartDlg").close();
-$("order").onclick = () => {
-  if (!cart.length) { $("cartErr").textContent = "Ajoute un produit avant de commander."; return; }
-  if (!auth?.currentUser) { $("cartErr").textContent = "Connecte-toi pour commander."; return; }
-  if (status !== "verified") { $("cartErr").textContent = "Ton identité doit d'abord être validée (voir « Mon compte »)."; return; }
-  $("cartErr").textContent = "Le paiement n'est pas encore branché sur ce site.";
-};
-
-/* ============ Connexion ============ */
-const errMsg = e => ({ "auth/invalid-credential": "Email ou mot de passe incorrect.", "auth/email-already-in-use": "Cet email a déjà un compte.",
-  "auth/weak-password": "Mot de passe trop court (6 caractères min.).", "auth/invalid-email": "Email invalide.",
-  "auth/popup-closed-by-user": "Connexion annulée.", "auth/unauthorized-domain": "Ce domaine n'est pas autorisé dans Firebase (Authentication > Paramètres > Domaines autorisés).",
-  "auth/operation-not-allowed": "Cette méthode n'est pas activée dans Firebase (Authentication > Sign-in method)." }[e.code] || "Erreur : " + (e.code || e.message));
-const run = async fn => { $("authErr").textContent = ""; if (!auth) { $("authErr").textContent = "Connexion indisponible. Recharge la page (Ctrl+F5)."; return; } try { await fn(); $("authDlg").close(); } catch (e) { $("authErr").textContent = errMsg(e); } };
-$("authBtn").onclick = () => auth?.currentUser ? signOut(auth) : $("authDlg").showModal();
-$("authClose").onclick = () => $("authDlg").close();
-$("acctBtn").onclick = () => $("account").scrollIntoView();
-$("doLogin").onclick = () => run(() => signInWithEmailAndPassword(auth, $("email").value.trim(), $("pwd").value));
-$("doSignup").onclick = () => run(() => createUserWithEmailAndPassword(auth, $("email").value.trim(), $("pwd").value));
-$("gBtn").onclick = () => run(() => signInWithPopup(auth, new GoogleAuthProvider()));
-$("aBtn").onclick = () => run(() => signInWithPopup(auth, new OAuthProvider("apple.com")));
-
-/* ============ Vérification d'identité ============ */
-let unsubV = null, unsubAdmin = null;
-const makeCode = () => {
-  const n = crypto.getRandomValues(new Uint32Array(4)), L = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  return String(n[0] % 10) + n[1] % 10 + n[2] % 10 + n[3] % 10 + [...crypto.getRandomValues(new Uint8Array(3))].map(x => L[x % L.length]).join("");
-};
-function renderAccount(user, data) {
-  const box = $("accountBox"); box.textContent = "";
-  const el = (tag, text, cls) => { const e = document.createElement(tag); e.textContent = text; if (cls) e.className = cls; box.append(e); return e; };
-  el("h2", "Vérification d'identité");
-  status = data?.status || "none";
-  if (status === "verified") { el("p", "Identité validée. Tu peux commander.", "ok"); return; }
-  if (status === "pending") { el("p", "Demande envoyée. Elle est en attente de validation."); el("p", "Ton code :"); el("div", data.code, "code"); return; }
-  if (status === "refused") el("p", "Ta dernière demande a été refusée. Tu peux en envoyer une nouvelle.", "err");
-  const code = makeCode();
-  el("p", "Écris ce code sur une feuille et prends-toi en photo avec ta carte d'identité et la feuille :");
-  el("div", code, "code");
-  const f1 = Object.assign(document.createElement("input"), { type: "file", accept: "image/*" });
-  const f2 = Object.assign(document.createElement("input"), { type: "file", accept: "image/*" });
-  el("label", "Photo de ta carte d'identité (recto)"); box.append(f1);
-  el("label", "Photo de toi avec la feuille et le code"); box.append(f2);
-  const msg = el("p", "", "err"), send = el("button", "Envoyer ma demande");
-  send.onclick = async () => {
-    msg.textContent = "";
-    const [a, b] = [f1.files[0], f2.files[0]];
-    if (!a || !b) { msg.textContent = "Ajoute les deux photos."; return; }
-    if (a.size > 5e6 || b.size > 5e6) { msg.textContent = "Chaque photo doit faire moins de 5 Mo."; return; }
-    send.disabled = true; send.textContent = "Envoi…";
-    try {
-      await uploadBytes(ref(storage, `verifs/${user.uid}/id`), a);
-      await uploadBytes(ref(storage, `verifs/${user.uid}/selfie`), b);
-      await setDoc(doc(db, "verifs", user.uid), { code, email: user.email, status: "pending", createdAt: serverTimestamp() });
-    } catch (e) { msg.textContent = "Envoi impossible : " + (e.code || e.message); send.disabled = false; send.textContent = "Envoyer ma demande"; }
-  };
-}
-
-/* ============ Dashboard admin ============ */
-function watchAdmin() {
-  unsubAdmin = onSnapshot(query(collection(db, "verifs"), where("status", "==", "pending")), snap => {
-    const box = $("reqs"); box.textContent = "";
-    if (snap.empty) box.textContent = "Aucune demande en attente.";
-    snap.forEach(async d => {
-      const v = d.data(), row = document.createElement("div"); row.className = "req";
-      const left = document.createElement("div");
-      left.append(Object.assign(document.createElement("p"), { textContent: `${v.email} – code ${v.code}` }));
-      for (const n of ["id", "selfie"]) {
-        try { const url = await getDownloadURL(ref(storage, `verifs/${d.id}/${n}`));
-          const a = Object.assign(document.createElement("a"), { href: url, target: "_blank", rel: "noopener" });
-          a.append(Object.assign(document.createElement("img"), { src: url, alt: n })); left.append(a); } catch {}
-      }
-      const btns = document.createElement("div"); btns.className = "row";
-      for (const [label, st] of [["Accepter", "verified"], ["Refuser", "refused"]]) {
-        const b = document.createElement("button"); b.textContent = label; if (st === "refused") b.className = "ghost";
-        b.onclick = () => updateDoc(doc(db, "verifs", d.id), { status: st }); btns.append(b);
-      }
-      row.append(left, btns); box.append(row);
-    });
-  }, e => { $("reqs").textContent = "Lecture impossible : " + e.code + " (vérifie les règles Firestore)."; });
-}
-
-async function initFirebase() {
+/* ===== VÉRIFICATION IDENTITÉ ===== */
+$("send").onclick = async () => {
+  const a = $("f1").files[0], b = $("f2").files[0];
+  if (!a || !b) { $("vm").textContent = "Ajoutez les 2 photos."; return; }
+  $("vm").textContent = "Envoi…";
   try {
-    const V = "https://www.gstatic.com/firebasejs/11.10.0/";
-    const [A, B, C, D] = await Promise.all([import(V + "firebase-app.js"), import(V + "firebase-auth.js"), import(V + "firebase-firestore.js"), import(V + "firebase-storage.js")]);
-    ({ initializeApp } = A);
-    ({ getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, OAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } = B);
-    ({ getFirestore, doc, setDoc, onSnapshot, collection, query, where, updateDoc, serverTimestamp } = C);
-    ({ getStorage, ref, uploadBytes, getDownloadURL } = D);
-    app = initializeApp(firebaseConfig); auth = getAuth(app); db = getFirestore(app); storage = getStorage(app);
-  } catch (e) { console.error(e); toast("Connexion indisponible pour le moment"); return; }
-  const ck2 = store.get("cookies"); if (ck2 === "yes") startAnalytics();
-  onAuthStateChanged(auth, user => {
-  unsubV?.(); unsubAdmin?.(); status = "none";
-  $("authBtn").textContent = user ? "Se déconnecter" : "Se connecter";
-  $("account").classList.toggle("hidden", !user);
-  $("acctBtn").classList.toggle("hidden", !user);
-  $("admin").classList.add("hidden");
-  if (!user) return;
-  unsubV = onSnapshot(doc(db, "verifs", user.uid), s => renderAccount(user, s.data()),
-    e => { $("accountBox").textContent = "Compte indisponible : " + e.code + " (vérifie les règles Firestore)."; });
-  if (user.email === ADMIN_EMAIL && user.emailVerified) { $("admin").classList.remove("hidden"); watchAdmin(); }
-});
-}
-initFirebase();
+    const up = async (f, n) => { const r = ref(storage, `verifications/${user.uid}/${n}`); await uploadBytes(r, f); return getDownloadURL(r); };
+    const [idUrl, selfieUrl] = [await up(a, "id"), await up(b, "selfie")];
+    await setDoc(doc(db, "verifications", user.uid), { uid: user.uid, email: user.email, code: vcode, idUrl, selfieUrl, status: "pending", createdAt: serverTimestamp() });
+    $("vm").textContent = "Envoyé ✅ Vous serez averti après validation.";
+  } catch (e) { $("vm").textContent = e.message; }
+};
+
+/* ===== DASHBOARD ADMIN (UNIQUEMENT pc2alex.les@gmail.com) ===== */
+$("bDash").onclick = () => {
+  if (!user || user.email !== ADMIN_EMAIL) return;
+  open("dash");
+  unsubs.push(onSnapshot(query(collection(db, "verifications"), where("status", "==", "pending")), s => {
+    $("dv").innerHTML = s.empty ? '<p class="mut">Aucune demande.</p>' : s.docs.map(d => { const v = d.data(); return `<div class="row"><div><b>${esc(v.email)}</b> · code <b>${esc(v.code)}</b><br><a href="${v.idUrl}" target="_blank" style="color:var(--acc2)">Pièce d'identité</a> · <a href="${v.selfieUrl}" target="_blank" style="color:var(--acc2)">Selfie</a></div><button class="btn ok" data-a="${d.id}">Accepter</button><button class="btn ko" data-r="${d.id}">Refuser</button></div>`; }).join("");
+    document.querySelectorAll("[data-a]").forEach(b => b.onclick = async () => { await updateDoc(doc(db, "verifications", b.dataset.a), { status: "approved" }); await setDoc(doc(db, "users", b.dataset.a), { verified: true }, { merge: true }); });
+    document.querySelectorAll("[data-r]").forEach(b => b.onclick = () => updateDoc(doc(db, "verifications", b.dataset.r), { status: "rejected" }));
+  }));
+  unsubs.push(onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), s => {
+    $("do").innerHTML = s.empty ? '<p class="mut">Aucune commande.</p>' : s.docs.map(d => { const o = d.data(); return `<div class="row"><div><b>${esc(o.email)}</b> · ${euro(o.total)}<br><small class="mut">${o.items.map(i => esc(byId(i.id)?.name || i.id) + (i.flav ? " (" + esc(i.flav) + ")" : "") + " ×" + i.n).join(", ")}</small></div><span class="pill">${esc(o.status)}</span></div>`; }).join("");
+  }));
+};
+
+render(); save();
