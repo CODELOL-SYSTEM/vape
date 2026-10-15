@@ -86,7 +86,7 @@ footer{border-top:1px solid var(--line);padding:34px 20px;text-align:center;colo
 .tabs{display:grid;grid-template-columns:1fr 1fr;position:relative;background:#0b0e16;border-radius:12px;padding:4px}.tab{padding:9px;border-radius:9px;position:relative;z-index:1;color:var(--mut)}.tab.on{color:#fff}.tabs i{position:absolute;left:4px;top:4px;bottom:4px;width:calc(50% - 4px);border-radius:9px;background:var(--g);transition:transform .35s cubic-bezier(.3,1.2,.4,1)}.tabs.up i{transform:translateX(100%)}
 .lnk{color:var(--mut);font-size:13px;text-decoration:underline;display:block;margin:10px auto 0}
 .code{font:800 40px "Trebuchet MS";letter-spacing:6px;text-align:center;color:var(--b);padding:14px;border:2px dashed var(--b);border-radius:16px}.drop{cursor:pointer}.drop input{display:none}.pvw{display:grid;place-items:center;margin-top:5px;height:96px;border:2px dashed var(--line);border-radius:14px;background:#0b0e16 center/cover no-repeat;font-size:13px}.pvw.ok{border:2px solid var(--ok);color:#fff;text-shadow:0 1px 6px #000}
-.dr{display:flex;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}.dr>div{flex:1;min-width:200px}.dr a{color:var(--b)}
+.dr{display:flex;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}.dr>div{flex:1;min-width:200px}.dr a{color:var(--b)}.dr .im{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.dr .im img{width:150px;border-radius:8px;cursor:zoom-in;border:1px solid var(--line)}.dr .im img.big{width:100%}
 #age,#minor{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;overflow:auto;background:radial-gradient(800px 500px at 50% 0,#7c5cff60,var(--bg))}#minor{display:none;background:radial-gradient(800px 500px at 50% 0,#ef444455,var(--bg))}#minor.on{display:grid}
 #age.out{animation:ageout .7s forwards;pointer-events:none}@keyframes ageout{to{opacity:0;transform:perspective(900px) rotateX(18deg) translateY(-80px) scale(.9)}}
 .agebox{width:min(480px,100%);text-align:center;background:#10131dee;border:1px solid var(--line);border-radius:28px;padding:30px 26px;animation:flip .9s cubic-bezier(.2,.9,.3,1.1)}@keyframes flip{from{opacity:0;transform:perspective(900px) rotateY(-90deg) scale(.8)}}
@@ -149,6 +149,5 @@ footer{border-top:1px solid var(--line);padding:34px 20px;text-align:center;colo
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="app.js" defer></script>
 </body></html>
