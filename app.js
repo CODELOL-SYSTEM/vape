@@ -1,3 +1,10 @@
+/* ================= À REMPLIR (3 choses) =================
+   Ces 3 IDs ne sont pas secrets. IMPORTANT : le serveur lit ses propres valeurs
+   dans functions/index.js — mets les MÊMES IDs là-bas pour que l'envoi Discord marche. */
+const DISCORD_CHANNEL_ID = "1560350205100949575";
+const DISCORD_BOT_ID     = "1560338158535581726";
+const MON_ID_DISCORD     = "1531052694733586462";
+/* ======================================================== */
 /* ===== AUCUNE CONFIG ICI : Firebase se configure tout seul via /__/firebase/init.js ===== */
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const auth=firebase.auth(),db=firebase.firestore(),st=firebase.storage(),fn=n=>firebase.app().functions("europe-west1").httpsCallable(n);
@@ -99,7 +106,71 @@ document.addEventListener("mousemove",e=>{
   const c=e.target.closest(".card,.feat");$$(".card,.feat").forEach(x=>{if(x!==c)x.style.transform=""});
   if(c){const r=c.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;c.style.transform=`rotateY(${(x-.5)*16}deg) rotateX(${(.5-y)*16}deg) translateZ(14px)`;c.style.setProperty("--gx",x*100+"%");c.style.setProperty("--gy",y*100+"%")}
 });
-const hs=$(".stage");if(hs)hs.addEventListener("mousemove",e=>{const r=hs.getBoundingClientRect();$(".scene").style.transform=`rotateX(${-((e.clientY-r.top)/r.height-.5)*30}deg) rotateY(${((e.clientX-r.left)/r.width-.5)*40}deg)`});
-$$(".feat").forEach(()=>{});
 grid();renderCart();reveal();
 if(location.search.includes("paid=1")){cart=[];save();toast("Paiement reçu, merci ! 🎉","ok")}
+
+/* ================= 3D++ ================= */
+(()=>{
+  const css=document.createElement("style");css.textContent=`
+  .cube{position:absolute;width:var(--s);height:var(--s);transform-style:preserve-3d;animation:cubespin var(--t) linear infinite;opacity:.55}
+  .cube b{position:absolute;inset:0;border:1px solid color-mix(in srgb,var(--c) 70%,transparent);background:color-mix(in srgb,var(--c) 14%,transparent);backdrop-filter:blur(2px)}
+  .cube b:nth-child(1){transform:translateZ(calc(var(--s)/2))}.cube b:nth-child(2){transform:rotateY(180deg) translateZ(calc(var(--s)/2))}
+  .cube b:nth-child(3){transform:rotateY(90deg) translateZ(calc(var(--s)/2))}.cube b:nth-child(4){transform:rotateY(-90deg) translateZ(calc(var(--s)/2))}
+  .cube b:nth-child(5){transform:rotateX(90deg) translateZ(calc(var(--s)/2))}.cube b:nth-child(6){transform:rotateX(-90deg) translateZ(calc(var(--s)/2))}
+  @keyframes cubespin{from{transform:rotateX(0) rotateY(0) translateY(0)}50%{transform:rotateX(180deg) rotateY(200deg) translateY(-30px)}to{transform:rotateX(360deg) rotateY(360deg) translateY(0)}}
+  .cubes{position:absolute;inset:0;perspective:900px}
+  .fly{position:fixed;z-index:300;width:26px;height:26px;pointer-events:none;transform-style:preserve-3d;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:7px;box-shadow:0 0 24px var(--acc2)}
+  .stage{cursor:grab;touch-action:pan-y}.stage:active{cursor:grabbing}
+  .hero>div:first-child{transition:transform .2s ease-out}
+  .sec h2,.feats,.hero h1{will-change:transform}
+  .main{cursor:grab}.main .stage3{transition:transform .15s ease-out}
+  .shine3d{position:absolute;left:50%;bottom:8%;width:200px;height:40px;margin-left:-100px;border-radius:50%;background:radial-gradient(#0009,transparent 70%);animation:shadow 4s ease-in-out infinite;pointer-events:none}
+  @keyframes shadow{50%{transform:scale(.7);opacity:.5}}`;
+  document.head.append(css);
+
+  /* cubes 3D flottants en fond */
+  const bg=document.querySelector(".bgfx");if(bg){const w=document.createElement("div");w.className="cubes";
+    for(let i=0;i<14;i++){const c=document.createElement("div");c.className="cube";
+      c.style.cssText=`--s:${24+Math.random()*50}px;--t:${14+Math.random()*18}s;--c:${i%2?"var(--acc)":"var(--acc2)"};left:${Math.random()*95}%;top:${Math.random()*92}%;animation-delay:-${Math.random()*20}s`;
+      c.innerHTML="<b></b>".repeat(6);w.append(c)}bg.append(w)}
+
+  /* ombre sous le puff du hero */
+  const sc=document.querySelector(".scene");
+  if(sc){const sh=document.createElement("div");sh.className="shine3d";sc.parentElement.append(sh);
+
+    /* drag + inertie + souris + gyroscope */
+    let rx=-8,ry=0,vx=0,vy=0,drag=false,lx=0,ly=0,tx=0,ty=0;
+    const st=document.querySelector(".stage");
+    st.addEventListener("pointerdown",e=>{drag=true;lx=e.clientX;ly=e.clientY;vx=vy=0});
+    addEventListener("pointerup",()=>drag=false);
+    addEventListener("pointermove",e=>{
+      if(drag){vy=(e.clientX-lx)*.5;vx=-(e.clientY-ly)*.4;ry+=vy;rx=Math.max(-50,Math.min(50,rx+vx));lx=e.clientX;ly=e.clientY}
+      else{const r=st.getBoundingClientRect();if(e.clientY>r.top-60&&e.clientY<r.bottom+60){tx=-((e.clientY-r.top)/r.height-.5)*26;ty=((e.clientX-r.left)/r.width-.5)*36}}});
+    addEventListener("deviceorientation",e=>{if(e.gamma!=null){ty=e.gamma*.8;tx=-(e.beta-45)*.5}});
+    (function loop(){if(!drag){ry+=vy;vy*=.95;rx+=(0-rx)*.02}
+      sc.style.transform=`rotateX(${rx+tx}deg) rotateY(${ry+ty}deg) translateZ(${Math.sin(Date.now()/900)*16}px)`;requestAnimationFrame(loop)})();
+  }
+
+  /* parallax 3D au scroll */
+  const hero=document.querySelector(".hero>div:first-child");
+  addEventListener("scroll",()=>{const y=scrollY;
+    if(hero){hero.style.transform=`translateY(${y*.12}px) translateZ(0)`}
+    const f=document.querySelector(".feats");if(f)f.style.transform=`rotateX(${Math.max(0,8-y/80)}deg)`;
+    document.querySelectorAll(".card.vis").forEach((c,i)=>{c.style.setProperty("--py",Math.sin((y+i*120)/260)*5+"px")});
+  },{passive:true});
+
+  /* fiche produit : le puff suit la souris */
+  document.addEventListener("pointermove",e=>{const m=e.target.closest?.(".main");if(!m)return;const r=m.getBoundingClientRect(),
+    s=m.querySelector(".stage3");if(s)s.style.transform=`scale(.8) rotateX(${-((e.clientY-r.top)/r.height-.5)*40}deg) rotateY(${((e.clientX-r.left)/r.width-.5)*50}deg)`});
+
+  /* cube qui vole vers le panier */
+  document.addEventListener("click",e=>{
+    if(!e.target.closest("#add"))return;
+    const a=e.target.getBoundingClientRect(),b=document.querySelector("#bCart").getBoundingClientRect();
+    const f=document.createElement("div");f.className="fly";f.style.left=a.left+a.width/2+"px";f.style.top=a.top+"px";document.body.append(f);
+    f.animate([{transform:"translate(0,0) rotateX(0) rotateY(0) scale(1)",opacity:1},
+      {transform:`translate(${(b.left-a.left)/2}px,-120px) rotateX(360deg) rotateY(360deg) scale(1.6)`,opacity:1,offset:.5},
+      {transform:`translate(${b.left-a.left-a.width/2+20}px,${b.top-a.top}px) rotateX(720deg) rotateY(720deg) scale(.2)`,opacity:.2}],
+      {duration:850,easing:"cubic-bezier(.3,.7,.3,1)"}).onfinish=()=>f.remove();
+  },true);
+})();
