@@ -2,8 +2,8 @@ const firebaseConfig = {
   apiKey: "AIzaSyAO3ZNx7hAFG_qH0BfeSUIMQsRfonH-LXw", authDomain: "vape-fc2ca.firebaseapp.com", projectId: "vape-fc2ca",
   storageBucket: "vape-fc2ca.firebasestorage.app", messagingSenderId: "826171627240", appId: "1:826171627240:web:68cb55f24238a68df29b5d", measurementId: "G-SCXPMEKRRJ"
 };
-const ADMIN_EMAIL = "pc2alex.les@gmail.com", FREE_FROM = 39, SHIPPING = 4.9;
-let auth, db, storage, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, OAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, doc, setDoc, getDoc, addDoc, collection, onSnapshot, query, where, orderBy, updateDoc, serverTimestamp, ref, uploadBytes, getDownloadURL;
+const FREE_FROM = 39, SHIPPING = 4.9;
+let auth, db, storage, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, OAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, doc, setDoc, getDoc, addDoc, collection, onSnapshot, serverTimestamp, ref, uploadBytes, getDownloadURL;
 const G = "https://www.gstatic.com/firebasejs/10.12.2/";
 async function initFb() {
   const { initializeApp } = await import(G + "firebase-app.js");
