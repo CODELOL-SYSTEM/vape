@@ -131,20 +131,86 @@ function drawCart() {
 $("cl").onclick = e => { const b = e.target.closest("button"); if (!b) return; const d = b.dataset; if (d.m !== undefined) { if (--cart[d.m].n <= 0) cart.splice(d.m, 1); } else if (d.p !== undefined) cart[d.p].n++; else if (d.x !== undefined) cart.splice(d.x, 1); else return; saveCart(); drawCart(); };
 $("ct").onclick = e => { if (e.target.id === "ord") order(); };
 
-/* ===== COMMANDE + PAYPAL ===== */
+/* ===== COMMANDE + ADRESSE + PAYPAL ===== */
+const FV = firebase.firestore.FieldValue;
 const payUrl = total => `https://www.paypal.com/paypalme/${PAYPAL}/${total.toFixed(2)}`;
-async function order() {
+const PHONE_RE = /^(?:\+33|0033|0)[1-9](?:[\s.-]?\d{2}){4}$/;
+const ST = ["nouvelle", "payée", "en préparation", "expédiée", "en transit", "en livraison", "livrée", "annulée", "remboursée"];
+const CHAIN = ST.slice(0, 7), ENDED = ["livrée", "annulée", "remboursée"];
+const pad = n => String(n).padStart(2, "0");
+const fmtEta = ms => { if (ms <= 0) return "Arrivée imminente"; const s = Math.floor(ms / 1000), d = Math.floor(s / 86400); return (d ? d + "j " : "") + pad(Math.floor(s % 86400 / 3600)) + ":" + pad(Math.floor(s % 3600 / 60)) + ":" + pad(s % 60); };
+const fdate = t => t ? new Date(t).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "";
+const cms = o => o.createdAt && o.createdAt.toMillis ? o.createdAt.toMillis() : Date.now();
+setInterval(() => $$("[data-eta]").forEach(e => e.textContent = fmtEta(+e.dataset.eta - Date.now())), 1000);
+const itemsHtml = o => (o.items || []).map(i => esc(i.name || i.id) + (i.flav ? " (" + esc(i.flav) + ")" : "") + " ×" + i.n).join("<br>");
+const addrHtml = o => { const d = o.dest; return d ? `📦 ${esc(d.name)}<br>${esc(d.line)}${d.extra ? ", " + esc(d.extra) : ""}<br>${esc(d.postcode)} ${esc(d.city)} · ${esc(d.country)}${d.phone ? "<br>📞 " + esc(d.phone) : ""}` : "Pas d'adresse enregistrée"; };
+function trackHtml(o) {
+  const i = CHAIN.indexOf(o.status);
+  return (i >= 0 ? `<div class="prog">${CHAIN.map((s, k) => `<span class="${k <= i ? "on" : ""}" title="${s}"></span>`).join("")}</div>` : "")
+    + (o.loc ? `<div>📍 Le colis est ici : <b>${esc(o.loc)}</b></div>` : "")
+    + (o.carrier || o.track ? `<div class="mut">🚚 ${esc(o.carrier || "")}${o.track ? " · n° de suivi : <b style='color:var(--tx)'>" + esc(o.track) + "</b>" : ""}</div>` : "")
+    + (o.eta && !ENDED.includes(o.status) ? `<div>⏱ Livraison estimée dans <b class="cd" data-eta="${+o.eta}">${fmtEta(o.eta - Date.now())}</b></div>` : "")
+    + ((o.hist || []).length ? `<div class="hist">${[...o.hist].reverse().map(h => `<div><small class="mut">${fdate(h.t)}</small> ${esc(h.s)}${h.loc ? " · " + esc(h.loc) : ""}</div>`).join("")}</div>` : "");
+}
+
+let addr = null, addrT = 0, sug = [];
+function order() {
   if (!cart.length) return;
   if (!user) { setMode("in"); open("auth"); return toast("Connecte-toi pour commander"); }
   if (!verified) { if (vs === "pending") return toast("Vérification en cours : attends la validation."); if (vs === "rejected") return toast("Vérification refusée : achat impossible.", "ko"); closeCart(); return openVerif(); }
-  const b = $("ord"); b.disabled = true;
-  try {
-    const t = totals(), total = +(t.sub + t.ship).toFixed(2), ref = "VS-" + Math.random().toString(36).slice(2, 7).toUpperCase();
-    await db.collection("orders").add({ uid: user.uid, email: user.email, items: cart.map(l => ({ id: l.id, name: byId(l.id).name, flav: l.flav, n: l.n, unit: +unit(l).toFixed(2) })), total, ref, paid: false, status: "nouvelle", createdAt: TS() });
-    notify("Nouvelle commande (PayPal à vérifier)", 0x7c5cff, [{ name: "Référence", value: ref }, { name: "Client", value: String(user.email) }, { name: "Articles", value: cart.map(l => `${byId(l.id).name}${l.flav ? " (" + l.flav + ")" : ""} ×${l.n}`).join("\n").slice(0, 1000) || "—" }, { name: "Total à recevoir", value: euro(total) }]);
-    cart = []; saveCart(); closeCart(); showPay(ref, total);
-  } catch (e) { toast("Commande non envoyée : " + fbErr(e), "ko", 9000); b.disabled = false; }
+  closeCart(); openAddr();
 }
+function openAddr() {
+  let s = null; try { s = JSON.parse(store.get("addr") || "null"); } catch {}
+  if (s && s.addr) { addr = s.addr; $("aN").value = s.name || ""; $("aL").value = addr.line; $("aX").value = s.extra || ""; $("aP").value = addr.postcode; $("aC").value = addr.city; $("aT").value = s.phone || ""; }
+  else { addr = null; ["aN", "aL", "aX", "aP", "aC", "aT"].forEach(i => $(i).value = ""); }
+  $("aSug").innerHTML = ""; addrCheck(); open("addr");
+}
+function addrCheck() {
+  const n = $("aN").value.trim(), t = $("aT").value.trim(), nOk = n.length >= 4 && /\s/.test(n) && /^[\p{L}'’.\- ]+$/u.test(n), tOk = !t || PHONE_RE.test(t);
+  $("aM").textContent = !tOk ? "Numéro de téléphone invalide (ex : 06 12 34 56 78)." : "";
+  $("addrOk").disabled = !(nOk && addr && tOk);
+}
+$("aN").oninput = $("aT").oninput = addrCheck;
+$("aL").oninput = () => {
+  addr = null; $("aP").value = $("aC").value = ""; addrCheck();
+  const q = $("aL").value.trim(), my = ++addrT; if (q.length < 3) { $("aSug").innerHTML = ""; return; }
+  setTimeout(async () => {
+    if (my !== addrT) return;
+    try {
+      const j = await (await fetch("https://api-adresse.data.gouv.fr/search/?type=housenumber&limit=5&autocomplete=1&q=" + encodeURIComponent(q))).json(); if (my !== addrT) return;
+      sug = (j.features || []).filter(f => f.properties.score > .4);
+      $("aSug").innerHTML = sug.length ? sug.map((f, i) => `<button type="button" data-i="${i}">${esc(f.properties.name)}<small>${esc(f.properties.postcode + " " + f.properties.city)}</small></button>`).join("") : '<p class="mut" style="padding:9px 13px;font-size:13px">Adresse introuvable : vérifie le numéro et la rue.</p>';
+    } catch { $("aSug").innerHTML = '<p class="err" style="padding:9px 13px">Vérification d\'adresse indisponible, réessaie.</p>'; }
+  }, 250);
+};
+$("aSug").onclick = e => { const b = e.target.closest("button"); if (!b) return; const p = sug[+b.dataset.i].properties; addr = { line: p.name, postcode: p.postcode, city: p.city }; $("aL").value = p.name; $("aP").value = p.postcode; $("aC").value = p.city; $("aSug").innerHTML = ""; addrCheck(); };
+$("addrOk").onclick = async () => {
+  const b = $("addrOk"); b.disabled = true;
+  try {
+    const dest = { name: $("aN").value.trim(), line: addr.line, extra: $("aX").value.trim().slice(0, 80), postcode: addr.postcode, city: addr.city, country: "France", phone: $("aT").value.trim() };
+    store.set("addr", JSON.stringify({ addr, name: dest.name, extra: dest.extra, phone: dest.phone }));
+    const t = totals(), total = +(t.sub + t.ship).toFixed(2), ref = "VS-" + Math.random().toString(36).slice(2, 7).toUpperCase();
+    await db.collection("orders").add({ uid: user.uid, email: user.email, items: cart.map(l => ({ id: l.id, name: byId(l.id).name, flav: l.flav, n: l.n, unit: +unit(l).toFixed(2) })), total, dest, ref, paid: false, status: "nouvelle", refund: "", loc: "", carrier: "", track: "", eta: null, hist: [{ t: Date.now(), s: "nouvelle", loc: "" }], createdAt: TS() });
+    notify("Nouvelle commande (PayPal à vérifier)", 0x7c5cff, [{ name: "Référence", value: ref }, { name: "Client", value: String(user.email) }, { name: "Livraison", value: (dest.name + "\n" + dest.line + (dest.extra ? ", " + dest.extra : "") + "\n" + dest.postcode + " " + dest.city + (dest.phone ? "\n" + dest.phone : "")).slice(0, 500) }, { name: "Articles", value: cart.map(l => `${byId(l.id).name}${l.flav ? " (" + l.flav + ")" : ""} ×${l.n}`).join("\n").slice(0, 1000) || "—" }, { name: "Total à recevoir", value: euro(total) }]);
+    cart = []; saveCart(); shut("addr"); showPay(ref, total);
+  } catch (e) { $("aM").textContent = "Commande non envoyée : " + fbErr(e); b.disabled = false; }
+};
+
+/* ===== MES COMMANDES (client) ===== */
+let MINE = [], mineUn = null;
+function openMine() {
+  if (!user) return; open("mine"); $("mb").innerHTML = '<p class="mut">Chargement…</p>'; mineUn && mineUn();
+  mineUn = db.collection("orders").where("uid", "==", user.uid).onSnapshot(s => { MINE = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => cms(b) - cms(a)); drawMine(); }, e => { $("mb").innerHTML = `<p class="err">${esc(fbErr(e))}</p>`; });
+}
+function drawMine() {
+  $("mb").innerHTML = MINE.length ? MINE.map(o => `<div class="ord"><div class="oh"><div><b>${esc(o.ref)}</b> <small class="mut">${fdate(cms(o))}</small></div><div><span class="pill">${esc(o.status)}</span>${o.paid ? ' <span class="pill">✅ payée</span>' : ""}</div></div><div class="og"><div>${itemsHtml(o)}<br><b>${euro(o.total || 0)}</b></div><div class="mut">${addrHtml(o)}</div></div>${trackHtml(o)}${o.refund === "remboursé" ? '<div class="warn">✓ Commande remboursée</div>' : o.refundRequest ? '<div class="warn">↩ Demande de remboursement envoyée</div>' : ""}<div class="oa">${!o.paid && !["annulée", "remboursée"].includes(o.status) ? `<a class="btn" target="_blank" rel="noopener" href="${payUrl(o.total || 0)}">Payer avec PayPal</a>` : ""}${o.paid && !o.refund && !o.refundRequest && o.status !== "annulée" ? `<button class="btn alt" data-rq="${o.id}">Demander un remboursement</button>` : ""}</div></div>`).join("") : '<p class="mut">Aucune commande pour le moment.</p>';
+}
+$("bMine").onclick = openMine;
+$("mb").onclick = async e => {
+  const b = e.target.closest("[data-rq]"); if (!b) return; const o = MINE.find(x => x.id === b.dataset.rq), r = prompt("Pourquoi souhaites-tu un remboursement ?"); if (r === null || !o) return;
+  try { await db.doc("orders/" + o.id).update({ refundRequest: { t: Date.now(), reason: r.trim().slice(0, 300) } }); notify("Demande de remboursement", 0xef4444, [{ name: "Référence", value: o.ref }, { name: "Client", value: String(o.email) }, { name: "Motif", value: r.trim().slice(0, 300) || "—" }]); toast("Demande envoyée ✓", "ok"); } catch (x) { toast(fbErr(x), "ko", 8000); }
+};
 function showPay(ref, total) {
   $("payb").innerHTML = `<h2>Paiement PayPal</h2><div class="code" style="font-size:28px;letter-spacing:2px">${euro(total)}</div><p class="mut">Commande enregistrée. Référence : <b style="color:var(--tx)">${ref}</b></p>
   <a class="btn w" target="_blank" rel="noopener" href="${payUrl(total)}">Payer ${euro(total)} avec PayPal</a>
@@ -171,7 +237,7 @@ function chip() {
 $("vchip").onclick = () => openVerif();
 auth.onAuthStateChanged(u => {
   user = u; unsub.forEach(f => f()); unsub = []; dashUnsub.forEach(f => f()); dashUnsub = []; verified = false; vs = "";
-  $("bAcc").textContent = u ? "Déconnexion" : "Connexion"; $("bDash").style.display = u && u.email === ADMIN ? "" : "none"; chip();
+  $("bAcc").textContent = u ? "Déconnexion" : "Connexion"; $("bDash").style.display = u && u.email === ADMIN ? "" : "none"; chip(); $("bMine").style.display = u ? "" : "none"; mineUn && mineUn(); mineUn = null;
   if (!u) { if (location.hash === "#dash") { toast("Connecte-toi avec le compte admin"); setMode("in"); open("auth"); } return; }
   if (u.email === ADMIN && location.hash === "#dash") { history.replaceState(null, "", location.pathname); setTimeout(() => $("bDash").click(), 300); }
   unsub.push(db.doc("users/" + u.uid).onSnapshot(s => { verified = !!(s.exists && s.data().verified); chip(); }, e => console.error(e)));
@@ -202,6 +268,34 @@ $("send").onclick = async () => {
 };
 
 /* ===== DASHBOARD ADMIN ===== */
+let ORD = [], OPEN = new Set(), dirty = false;
+const setSt = (id, st, ex = {}) => {
+  const o = ORD.find(x => x.id === id), loc = ex.loc ?? o.loc ?? "", u = { status: st, ...ex };
+  if (st !== o.status || loc !== (o.loc || "")) u.hist = FV.arrayUnion({ t: Date.now(), s: st, loc });
+  return db.doc("orders/" + id).update(u);
+};
+function drawStats() {
+  const sum = a => a.reduce((s, o) => s + (o.total || 0), 0);
+  const st = [[ORD.length, "commandes"], [euro(sum(ORD.filter(o => o.paid && o.refund !== "remboursé"))), "encaissé"], [euro(sum(ORD.filter(o => !o.paid && o.status !== "annulée"))), "à encaisser"], [ORD.filter(o => o.paid && ["nouvelle", "payée", "en préparation"].includes(o.status)).length, "à expédier"], [ORD.filter(o => o.refundRequest && o.refund !== "remboursé").length, "remboursements demandés"], [ORD.filter(o => o.refund === "remboursé").length, "remboursées"]];
+  $("ost").innerHTML = st.map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join("");
+}
+function drawOrders() {
+  const q = norm($("osq").value), f = $("osf").value;
+  const l = ORD.filter(o => (!f || (f === "_refund" ? o.refundRequest || o.refund : o.status === f)) && (!q || norm([o.email, o.ref, o.dest && o.dest.name, o.dest && o.dest.city, o.track, o.loc].join(" ")).includes(q)));
+  $("do").innerHTML = l.length ? l.map(o => `<div class="ord" data-oid="${o.id}"><div class="oh"><div><b>${esc(o.ref || "")}</b> · ${esc(o.email)} <small class="mut">${fdate(cms(o))}</small></div><div><span class="pill">${esc(o.status)}</span> ${o.paid ? '<span class="pill">✅ payée</span>' : '<span class="pill">⏳ à vérifier</span>'}${o.refund === "remboursé" ? ' <span class="pill">↩ remboursée</span>' : ""}</div></div>
+  <div class="og"><div>${itemsHtml(o)}<br><b>${euro(o.total || 0)}</b></div><div class="mut">${addrHtml(o)}</div></div>
+  ${o.refundRequest && o.refund !== "remboursé" ? `<div class="warn">↩ Remboursement demandé le ${fdate(o.refundRequest.t)} : ${esc(o.refundRequest.reason || "—")}</div>` : ""}${trackHtml(o)}
+  <div class="oa">${o.paid ? "" : `<button class="btn ok" data-paid="${o.id}">Paiement reçu</button>`}${["nouvelle", "payée", "en préparation"].includes(o.status) ? `<button class="btn alt" data-s="${o.id}">Expédiée</button>` : ""}${o.status !== "livrée" && !["annulée", "remboursée"].includes(o.status) ? `<button class="btn alt" data-dl="${o.id}">Livrée</button>` : ""}${o.refund !== "remboursé" ? `<button class="btn alt" data-ref="${o.id}">Rembourser</button>` : ""}<button class="btn ko" data-del="${o.id}">Supprimer</button></div>
+  <details ${OPEN.has(o.id) ? "open" : ""} ontoggle="this.open?OPEN.add('${o.id}'):OPEN.delete('${o.id}')"><summary>Modifier le suivi du colis</summary><div class="ed">
+  <label>Statut<select class="st">${ST.map(s => `<option ${s === o.status ? "selected" : ""}>${s}</option>`).join("")}</select></label>
+  <label>Où est le colis ?<input class="loc" maxlength="80" value="${esc(o.loc || "")}" placeholder="ex : Centre de tri de Lille"></label>
+  <label>Transporteur<input class="car" maxlength="40" value="${esc(o.carrier || "")}" placeholder="Colissimo, Mondial Relay…"></label>
+  <label>N° de suivi<input class="trk" maxlength="40" value="${esc(o.track || "")}"></label>
+  <label>Compte à rebours (vide = inchangé)<div style="display:flex;gap:6px;margin-top:5px"><input class="etn" type="number" min="0" placeholder="ex : 48"><select class="etu" style="width:110px"><option value="60000">minutes</option><option value="3600000" selected>heures</option><option value="86400000">jours</option></select></div></label>
+  </div><div class="oa" style="margin-top:10px"><button class="btn" data-save="${o.id}">Enregistrer</button>${o.eta ? `<button class="btn alt" data-stop="${o.id}">Arrêter le compte à rebours</button>` : ""}</div></details></div>`).join("") : '<p class="mut">Aucune commande.</p>';
+}
+$("osq").oninput = $("osf").onchange = drawOrders;
+$("do").addEventListener("focusout", () => setTimeout(() => { if (dirty && !$("do").contains(document.activeElement)) { dirty = false; drawOrders(); } }, 150));
 $("bDash").onclick = () => {
   if (!user || user.email !== ADMIN) return; open("dash"); dashUnsub.forEach(f => f()); dashUnsub = [];
   const er = el => e => { $(el).innerHTML = `<p class="err">${esc(fbErr(e))}</p>`; };
@@ -209,16 +303,29 @@ $("bDash").onclick = () => {
     $("dv").innerHTML = s.empty ? '<p class="mut">Aucune demande.</p>' : s.docs.map(d => { const v = d.data(); return `<div class="dr"><div><b>${esc(v.email)}</b> · code <b>${esc(v.code)}</b><div class="im">${["idImg", "selfieImg"].map(k => String(v[k] || "").startsWith("data:image/jpeg;base64,") ? `<img src="${v[k]}" alt="" title="Clique pour agrandir" onclick="this.classList.toggle('big')">` : "").join("")}</div></div><button class="btn ok" data-a="${d.id}">Accepter</button><button class="btn ko" data-r="${d.id}">Refuser</button></div>`; }).join("");
   }, er("dv")));
   dashUnsub.push(db.collection("orders").orderBy("createdAt", "desc").onSnapshot(s => {
-    $("do").innerHTML = s.empty ? '<p class="mut">Aucune commande.</p>' : s.docs.map(d => { const o = d.data(); return `<div class="dr"><div><b>${esc(o.email)}</b> · ${euro(o.total || 0)} · <b>${esc(o.ref || "")}</b><br><small class="mut">${(o.items || []).map(i => esc(i.name || i.id) + (i.flav ? " (" + esc(i.flav) + ")" : "") + " ×" + i.n).join(", ")}</small><br><small>${o.paid ? "✅ payée" : "⏳ paiement PayPal à vérifier"}</small></div><span class="pill">${esc(o.status)}</span>${o.paid ? "" : `<button class="btn ok" data-paid="${d.id}">Paiement reçu</button>`}${o.status === "nouvelle" ? `<button class="btn alt" data-s="${d.id}">Expédiée</button>` : ""}</div>`; }).join("");
+    ORD = s.docs.map(d => ({ id: d.id, ...d.data() })); drawStats();
+    if ($("do").contains(document.activeElement)) dirty = true; else drawOrders();
   }, er("do")));
 };
 $("dash").onclick = async e => {
-  const b = e.target.closest("button"); if (!b) return; const d = b.dataset;
+  const b = e.target.closest("button"); if (!b) return; const d = b.dataset, o = ORD.find(x => x.id === (d.paid || d.s || d.dl || d.ref || d.del || d.save || d.stop));
   try {
-    if (d.a || d.r) { const id = d.a || d.r, ok = !!d.a; await db.doc("verifications/" + id).update({ status: ok ? "approved" : "rejected", idImg: firebase.firestore.FieldValue.delete(), selfieImg: firebase.firestore.FieldValue.delete() }); await db.doc("users/" + id).set({ verified: ok }, { merge: true }); toast(ok ? "Accepté ✓" : "Refusé", "ok"); }
-    else if (d.paid) { await db.doc("orders/" + d.paid).update({ paid: true }); toast("Paiement confirmé ✓", "ok"); }
-    else if (d.s) await db.doc("orders/" + d.s).update({ status: "expédiée" });
+    if (d.a || d.r) { const id = d.a || d.r, ok = !!d.a; await db.doc("verifications/" + id).update({ status: ok ? "approved" : "rejected", idImg: FV.delete(), selfieImg: FV.delete() }); await db.doc("users/" + id).set({ verified: ok }, { merge: true }); toast(ok ? "Accepté ✓" : "Refusé", "ok"); }
+    else if (d.paid) { await setSt(d.paid, o.status === "nouvelle" ? "payée" : o.status, { paid: true }); toast("Paiement confirmé ✓", "ok"); }
+    else if (d.s) { await setSt(d.s, "expédiée"); toast("Marquée expédiée ✓", "ok"); }
+    else if (d.dl) { await setSt(d.dl, "livrée", { eta: null }); toast("Marquée livrée ✓", "ok"); }
+    else if (d.ref) { if (!confirm("Marquer cette commande comme remboursée ?\nPense à faire le remboursement réel dans PayPal.")) return; await setSt(d.ref, "remboursée", { refund: "remboursé", eta: null }); toast("Remboursée ✓", "ok"); }
+    else if (d.del) { if (!confirm("Supprimer définitivement la commande " + o.ref + " ?")) return; await db.doc("orders/" + d.del).delete(); OPEN.delete(d.del); toast("Commande supprimée", "ok"); }
+    else if (d.stop) { await db.doc("orders/" + d.stop).update({ eta: null }); toast("Compte à rebours arrêté", "ok"); }
+    else if (d.save) {
+      const bx = b.closest(".ed") || b.closest("details").querySelector(".ed"), v = c => bx.querySelector(c).value.trim(), st = v(".st"), n = +v(".etn"), u = { loc: v(".loc"), carrier: v(".car"), track: v(".trk") };
+      if (n > 0) u.eta = Date.now() + n * +v(".etu");
+      if (ENDED.includes(st)) u.eta = null;
+      if (st === "remboursée") u.refund = "remboursé";
+      await setSt(d.save, st, u); toast("Enregistré ✓", "ok");
+    }
   } catch (x) { toast(fbErr(x), "ko", 8000); }
+  b.blur();
 };
 
 /* ===== FAQ ===== */
