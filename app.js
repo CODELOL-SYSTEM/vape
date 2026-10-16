@@ -29,13 +29,15 @@ const P = [
     flav: ["Watermelon Ice", "Strawberry Ice", "Peach Berry", "Black Dragon Ice", "Mixed Berries", "Summer Peach Ice", "Passion Fruit Kiwi", "Watermelon Mango Peach", "Watermelon Bubble Gum"],
     img: [42178, 42168, 42169, 42170, 42171, 42172, 42173, 42174, 42175, 42176, 42177, 42179, 42180, 42181, 42182, 43595].map(i => `${E}${i}-large_default/puff-aero-x-32k-jnr.jpg`),
     desc: "20 mg de nicotine · 32 000 bouffées · Rechargeable." },
-  { id: "falcon-gem-30k", name: "JNR Falcon Gem 30K", price: 14.9, puffs: 30000, flav: null,
+  { id: "falcon-gem-30k", name: "JNR Falcon Gem 30K", price: 14.9, puffs: 30000,
+    flav: ["Strawberry Ice", "Cherry Ice", "Blueberry Sour Raspberry", "Strawberry Watermelon Ice", "New Peach Ice", "New Watermelon Ice", "New Strawberry Kiwi", "Summer Holiday", "New Blue Cherry Cranberry", "Mix Berries", "Peach Berry", "Watermelon Mango Peach", "Mango Passion Fruit", "Blueberry Raspberry Cherry", "Cherry Watermelon Freeze", "Blackberry Red Raspberry", "Strawberry Raspberry Ice", "Fizzy Cherry Cola"],
     img: [...Array.from({ length: 11 }, (_, i) => 37250 + i), 38167, 38168, 38169, 40801, 40837].map(i => `${Lp}${i}-medium_default/puff-30k-falcon-gem-20-mg-jnr.jpg`),
     desc: "20 mg de nicotine · 30 000 bouffées · Rechargeable." },
   { id: "jnr-24k", name: "JNR 24K", price: 21.68, puffs: 24000, flav: ["Watermelon Ice", "Mexican Mango", "Cherry Ice", "Blue Razz Cherry"],
     img: ["https://puffsjnr.fr/wp-content/uploads/2025/12/jnr-24k-600x600.webp", "https://puffsjnr.fr/wp-content/uploads/2025/12/%E4%B8%BB%E5%9B%BE2-1-600x600.webp", "https://puffsjnr.fr/wp-content/uploads/2025/12/%E4%B8%BB%E5%9B%BE4-1-600x600.webp", "https://puffsjnr.fr/wp-content/uploads/2025/12/jnr-24000-puffs-600x600.webp"],
     desc: "20 mg de nicotine · 24 000 bouffées · 4 goûts au choix." }
 ];
+const FR = { "Strawberry Ice": "Fraise, glacé", "Cherry Ice": "Cerise, glacé", "Blueberry Sour Raspberry": "Myrtille, framboise", "Strawberry Watermelon Ice": "Fraise, pastèque, glacé", "New Peach Ice": "Pêche, glacé", "New Watermelon Ice": "Pastèque, glacé", "New Strawberry Kiwi": "Fraise, kiwi", "Summer Holiday": "Mangue, glacé", "New Blue Cherry Cranberry": "Cerise bleue, canneberge", "Mix Berries": "Fruits rouges", "Peach Berry": "Pêche, baies rouges", "Watermelon Mango Peach": "Pastèque, mangue, pêche", "Mango Passion Fruit": "Mangue, fruit de la passion", "Blueberry Raspberry Cherry": "Cassis, framboise, cerise", "Cherry Watermelon Freeze": "Cerise, pastèque, glacé", "Blackberry Red Raspberry": "Mûre, framboise", "Strawberry Raspberry Ice": "Fraise, framboise, glacé", "Fizzy Cherry Cola": "Cola, cerise" };
 const byId = id => P.find(p => p.id === id);
 
 /* ===== FENÊTRES ===== */
@@ -94,7 +96,7 @@ function showP(id) {
   cur = byId(id); qty = 1; ix = 0; const p = cur; fl = p.flav ? p.flav[0] : "";
   $("pmb").innerHTML = `<div class="pm"><div><div class="pv"><img id="pimg" src="${p.img[0]}" alt="">${p.img.length > 1 ? `<button class="ar l" data-i="-1" aria-label="Image précédente">‹</button><button class="ar r" data-i="1" aria-label="Image suivante">›</button><span class="cnt" id="cnt">1 / ${p.img.length}</span>` : ""}</div>${p.img.length > 1 ? `<div class="th">${p.img.map((u, i) => `<img src="${u}" data-k="${i}" loading="lazy" class="${i ? "" : "on"}">`).join("")}</div>` : ""}</div>
   <div class="stack"><small class="mut">${p.puffs.toLocaleString("fr-FR")} bouffées · 20 mg nicotine</small><h2>${esc(p.name)}</h2><div class="price big">${euro(p.price)} <small class="mut" style="font-size:12px">TTC</small></div><p class="mut">${esc(p.desc)}</p>
-  ${p.flav ? `<label>Goût<select id="fsel">${p.flav.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join("")}</select></label>` : ""}
+  ${p.flav ? `<label>Goût<select id="fsel">${p.flav.map(f => `<option value="${esc(f)}">${esc(f)}${FR[f] ? " — " + esc(FR[f]) : ""}</option>`).join("")}</select></label>` : ""}
   <div class="tiers">${[1, 3, 5, 10].map(n => `<button class="tier ${n === 1 ? "on" : ""}" data-n="${n}"><b>×${n}</b><br>${euro(p.price * n * DISC(n))}<small>${n > 1 ? "-" + Math.round((1 - DISC(n)) * 100) + " %" : "prix unitaire"}</small></button>`).join("")}</div>
   <div class="qty"><button data-d="-1">−</button><input id="qi" type="number" min="1" max="99" value="1"><button data-d="1">+</button></div><button class="btn w" id="add">Ajouter au panier</button></div></div>`;
   open("pm");
