@@ -11,8 +11,6 @@ const euro = n => n.toFixed(2).replace(".", ",") + " €";
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const norm = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 const hue = s => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7);
-const KW = [["blue", 225], ["cherry", 355], ["cerise", 355], ["strawberry", 345], ["fraise", 345], ["watermelon", 340], ["mango", 38], ["peach", 25], ["dragon", 285], ["kiwi", 105], ["cola", 18], ["raspberry", 330], ["berries", 300], ["passion", 45], ["pomegranate", 350], ["bubble", 320], ["luv", 320]];
-const fh = f => { const n = norm(f); for (const [k, h] of KW) if (n.includes(k)) return h; return hue(f); };
 const DISC = n => n >= 10 ? .85 : n >= 5 ? .9 : n >= 3 ? .94 : 1;
 const fbErr = e => { console.error(e); return (e.message || String(e)) + (/permission|unauthorized/.test(e.code || "") ? " → règles Firebase à publier." : ""); };
 function toast(m, t = "", ms = 4200) { const d = document.createElement("div"); d.className = "toast " + t; d.textContent = m; $("toasts").append(d); setTimeout(() => d.remove(), ms); }
@@ -49,7 +47,10 @@ $$(".ov").forEach(o => o.addEventListener("pointerdown", e => { if (e.target ===
 const openCart = () => { drawCart(); $("cart").classList.add("on"); $("dim").classList.add("on"); document.body.classList.add("lock"); };
 const closeCart = () => { $("cart").classList.remove("on"); $("dim").classList.remove("on"); unlock(); };
 $("bCart").onclick = openCart; $("cx").onclick = $("dim").onclick = closeCart;
-addEventListener("keydown", e => { if (e.key === "Escape") { $$(".ov.on").forEach(o => shut(o.id)); closeCart(); } });
+addEventListener("keydown", e => {
+  if (e.key === "Escape") { $$(".ov.on").forEach(o => shut(o.id)); closeCart(); }
+  else if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && $("pm").classList.contains("on") && cur && !/INPUT|SELECT/.test(document.activeElement.tagName)) setImg(ix + (e.key === "ArrowRight" ? 1 : -1));
+});
 
 /* ===== ÂGE & COOKIES ===== */
 const blockMinor = () => { document.body.classList.add("blocked"); $("minor").classList.add("on"); try { sessionStorage.setItem("minor", "1"); } catch {} };
@@ -81,26 +82,38 @@ $$(".fc").forEach(b => b.onclick = () => { $$(".fc").forEach(x => x.classList.to
 $("grid").onclick = e => { const c = e.target.closest(".card"); if (!c) return; const p = byId(c.dataset.id); if (e.target.closest(".qa") && !p.flav) add(p.id, "", 1); else showP(p.id); };
 
 /* ===== FICHE PRODUIT ===== */
-let cur, qty = 1, fl = "";
+let cur, qty = 1, fl = "", ix = 0;
 function setQ(n) { qty = Math.max(1, Math.min(99, n || 1)); $("qi").value = qty; $$(".tier").forEach(t => t.classList.toggle("on", +t.dataset.n === qty)); }
+function setImg(i) {
+  const n = cur.img.length; ix = (i + n) % n; $("pimg").src = cur.img[ix];
+  const ths = $$(".th img"); ths.forEach((t, k) => t.classList.toggle("on", k === ix));
+  if (ths[ix]) ths[ix].scrollIntoView({ block: "nearest", inline: "center" });
+  if ($("cnt")) $("cnt").textContent = (ix + 1) + " / " + n;
+}
 function showP(id) {
-  cur = byId(id); qty = 1; const p = cur; fl = p.flav ? p.flav[0] : "";
-  $("pmb").innerHTML = `<div class="pm"><div><div class="pv"><img id="pimg" src="${p.img[0]}" alt=""></div>${p.img.length > 1 ? `<div class="th">${p.img.map((u, i) => `<img src="${u}" data-u="${u}" loading="lazy" class="${i ? "" : "on"}">`).join("")}</div>` : ""}</div>
+  cur = byId(id); qty = 1; ix = 0; const p = cur; fl = p.flav ? p.flav[0] : "";
+  $("pmb").innerHTML = `<div class="pm"><div><div class="pv"><img id="pimg" src="${p.img[0]}" alt="">${p.img.length > 1 ? `<button class="ar l" data-i="-1" aria-label="Image précédente">‹</button><button class="ar r" data-i="1" aria-label="Image suivante">›</button><span class="cnt" id="cnt">1 / ${p.img.length}</span>` : ""}</div>${p.img.length > 1 ? `<div class="th">${p.img.map((u, i) => `<img src="${u}" data-k="${i}" loading="lazy" class="${i ? "" : "on"}">`).join("")}</div>` : ""}</div>
   <div class="stack"><small class="mut">${p.puffs.toLocaleString("fr-FR")} bouffées · 20 mg nicotine</small><h2>${esc(p.name)}</h2><div class="price big">${euro(p.price)} <small class="mut" style="font-size:12px">TTC</small></div><p class="mut">${esc(p.desc)}</p>
-  ${p.flav ? `<div class="lbl">Goût : <b id="fn">${esc(fl)}</b></div><div class="sws">${p.flav.map((f, i) => `<button class="sw ${i ? "" : "on"}" data-f="${esc(f)}" title="${esc(f)}" aria-label="${esc(f)}" style="--c:hsl(${fh(f)} 80% 55%)"></button>`).join("")}</div>` : ""}
+  ${p.flav ? `<label>Goût<select id="fsel">${p.flav.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join("")}</select></label>` : ""}
   <div class="tiers">${[1, 3, 5, 10].map(n => `<button class="tier ${n === 1 ? "on" : ""}" data-n="${n}"><b>×${n}</b><br>${euro(p.price * n * DISC(n))}<small>${n > 1 ? "-" + Math.round((1 - DISC(n)) * 100) + " %" : "prix unitaire"}</small></button>`).join("")}</div>
   <div class="qty"><button data-d="-1">−</button><input id="qi" type="number" min="1" max="99" value="1"><button data-d="1">+</button></div><button class="btn w" id="add">Ajouter au panier</button></div></div>`;
   open("pm");
 }
 $("pmb").onclick = e => {
-  const t = e.target.closest("button,img[data-u]"); if (!t) return; const d = t.dataset;
-  if (d.u) { $$(".th img").forEach(i => i.classList.toggle("on", i === t)); $("pimg").src = d.u; }
-  else if (d.f) { fl = d.f; $$(".sw").forEach(s => s.classList.toggle("on", s === t)); $("fn").textContent = fl; }
+  const t = e.target.closest("button,img[data-k]"); if (!t) return; const d = t.dataset;
+  if (d.k !== undefined) setImg(+d.k);
+  else if (d.i !== undefined) setImg(ix + +d.i);
   else if (d.n) setQ(+d.n);
   else if (d.d) setQ(qty + +d.d);
   else if (t.id === "add") { add(cur.id, cur.flav ? fl : "", qty); shut("pm"); openCart(); }
 };
-$("pmb").onchange = e => { if (e.target.id === "qi") setQ(+e.target.value); };
+$("pmb").onchange = e => {
+  if (e.target.id === "qi") setQ(+e.target.value);
+  else if (e.target.id === "fsel") { fl = e.target.value; if (cur.img.length === cur.flav.length) setImg(cur.flav.indexOf(fl)); }
+};
+let sx = 0;
+$("pmb").addEventListener("touchstart", e => { sx = e.touches[0].clientX; }, { passive: true });
+$("pmb").addEventListener("touchend", e => { if (!e.target.closest(".pv")) return; const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 40) setImg(ix + (dx < 0 ? 1 : -1)); }, { passive: true });
 
 /* ===== PANIER ===== */
 let cart = JSON.parse(store.get("cart") || "[]").filter(l => byId(l.id));
@@ -110,7 +123,7 @@ function saveCart() { store.set("cart", JSON.stringify(cart)); $("cn").textConte
 function add(id, f, n) { const l = cart.find(x => x.id === id && x.flav === f); l ? l.n += n : cart.push({ id, flav: f, n }); saveCart(); toast("Ajouté au panier ✓", "ok", 1800); }
 function drawCart() {
   const t = totals(), left = Math.max(0, FREE - t.sub);
-  $("cl").innerHTML = cart.length ? cart.map((l, i) => { const p = byId(l.id); return `<div class="row"><div class="t" style="background-image:url('${p.img[0]}')"></div><div><b>${esc(p.name)}</b><br>${l.flav ? `<small class="mut"><span class="dot" style="--c:hsl(${fh(l.flav)} 80% 55%)"></span>${esc(l.flav)}</small>` : ""}<div class="qb"><button data-m="${i}">−</button>${l.n}<button data-p="${i}">+</button></div></div><div class="rp">${euro(unit(l) * l.n)}<button data-x="${i}">Retirer</button></div></div>`; }).join("") : '<p class="mut" style="padding:20px 0">Ton panier est vide.</p>';
+  $("cl").innerHTML = cart.length ? cart.map((l, i) => { const p = byId(l.id); return `<div class="row"><div class="t" style="background-image:url('${p.img[0]}')"></div><div><b>${esc(p.name)}</b><br>${l.flav ? `<small class="mut">${esc(l.flav)}</small>` : ""}<div class="qb"><button data-m="${i}">−</button>${l.n}<button data-p="${i}">+</button></div></div><div class="rp">${euro(unit(l) * l.n)}<button data-x="${i}">Retirer</button></div></div>`; }).join("") : '<p class="mut" style="padding:20px 0">Ton panier est vide.</p>';
   $("ct").innerHTML = cart.length ? `<div class="mut" style="font-size:13px">${left ? `Plus que ${euro(left)} pour la livraison offerte` : "Livraison offerte"}</div><div class="bar2"><i style="width:${Math.min(100, t.sub / FREE * 100)}%"></i></div><div class="tot"><span>Sous-total</span><span>${euro(t.sub)}</span></div><div class="tot"><span>Livraison</span><span>${t.ship ? euro(t.ship) : "Offerte"}</span></div><div class="tot g"><span>Total</span><span>${euro(t.sub + t.ship)}</span></div><button class="btn w" id="ord">Commander et payer</button>` : "";
 }
 $("cl").onclick = e => { const b = e.target.closest("button"); if (!b) return; const d = b.dataset; if (d.m !== undefined) { if (--cart[d.m].n <= 0) cart.splice(d.m, 1); } else if (d.p !== undefined) cart[d.p].n++; else if (d.x !== undefined) cart.splice(d.x, 1); else return; saveCart(); drawCart(); };
