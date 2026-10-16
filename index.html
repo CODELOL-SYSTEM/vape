@@ -67,6 +67,13 @@ footer{border-top:1px solid var(--line);padding:30px 20px;text-align:center;colo
 .dob{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:10px;text-align:left}.dob input{text-align:center;font-size:18px;font-weight:600}.agebox small{display:block;color:var(--mut);font-size:12px}
 #toasts{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;width:min(92vw,430px)}.toast{background:var(--sol);border:1px solid var(--line);border-left:4px solid var(--b);padding:12px 16px;border-radius:12px;animation:rise .3s}.toast.ko{border-left-color:var(--ko)}.toast.ok{border-left-color:var(--ok)}
 #cookie{position:fixed;left:16px;bottom:16px;max-width:540px;background:var(--sol);border:1px solid var(--line);border-radius:16px;padding:14px;z-index:90;display:none;gap:10px;align-items:center;flex-wrap:wrap}
+.box.big{width:min(1100px,100%)}input[readonly]{opacity:.7}
+.sugs{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#0b0e16}.sugs:empty{display:none}.sugs button{display:block;width:100%;text-align:left;padding:10px 13px}.sugs button:hover{background:var(--line)}.sugs small{display:block;color:var(--mut)}.two{display:grid;grid-template-columns:1fr 1.4fr;gap:10px}
+.ord{border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;background:#0b0e16;display:grid;gap:8px}.oh{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.og{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:14px}@media(max-width:620px){.og{grid-template-columns:1fr}}
+.oa{display:flex;gap:8px;flex-wrap:wrap}.oa .btn{padding:8px 14px;font-size:13px}.ed{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:10px}details summary{cursor:pointer;color:var(--b);font-size:14px}.warn{color:var(--wa);font-size:13px}
+.cd{font:800 17px "Trebuchet MS";color:var(--b);font-variant-numeric:tabular-nums}.hist{font-size:12px;border-left:2px solid var(--line);padding-left:10px;max-height:110px;overflow:auto}
+.prog{display:flex;gap:4px}.prog span{flex:1;height:6px;border-radius:9px;background:#ffffff1a}.prog span.on{background:var(--g)}
+.stats2{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:10px 0}.stats2>div{background:#0b0e16;border:1px solid var(--line);border-radius:12px;padding:10px 12px}.stats2 b{display:block;font:800 20px "Trebuchet MS"}.stats2 span{font-size:12px;color:var(--mut)}
 </style></head><body>
 
 <div id="age"><div class="agebox" id="ageBox"><div class="logo">VAPE<b> SHOP</b></div><div class="n18">18+</div><span class="ban">INTERDIT AUX MINEURS</span><h2>Entrée réservée aux adultes</h2>
@@ -77,7 +84,7 @@ footer{border-top:1px solid var(--line);padding:30px 20px;text-align:center;colo
 
 <div class="promo">Livraison offerte dès 39 € · Prix dégressifs dès 3 articles · Majeurs uniquement</div>
 <header><div class="bar"><a class="logo" href="#top">VAPE<b> SHOP</b></a><nav><a href="#shop">Boutique</a><a href="#how">Commander</a><a href="#faq">FAQ</a></nav><div class="sp"></div>
-<span class="chip" id="vchip" style="display:none"></span><button class="btn alt" id="bAcc" style="padding:10px 16px">Connexion</button><button class="btn alt" id="bDash" style="display:none;padding:10px 16px">Dashboard</button><button class="ib" id="bCart" aria-label="Panier">🛒<span id="cn">0</span></button></div></header>
+<span class="chip" id="vchip" style="display:none"></span><button class="btn alt" id="bMine" style="display:none;padding:10px 16px">Mes commandes</button><button class="btn alt" id="bAcc" style="padding:10px 16px">Connexion</button><button class="btn alt" id="bDash" style="display:none;padding:10px 16px">Dashboard</button><button class="ib" id="bCart" aria-label="Panier">🛒<span id="cn">0</span></button></div></header>
 
 <section class="hero" id="top"><div><span class="pill">Réservé aux majeurs</span>
 <h1 style="margin-top:14px">Les puffs JNR,<br><em class="grad">en action.</em><br>Livrés vite.</h1>
@@ -100,7 +107,16 @@ footer{border-top:1px solid var(--line);padding:30px 20px;text-align:center;colo
 <div class="ov" id="idv"><div class="box s stack"><button class="x" data-close aria-label="Fermer">✕</button><h2>Vérification d'âge</h2><p class="mut">Écris ce code sur un papier, puis envoie ta pièce d'identité (carte, passeport ou permis) et un selfie où tu tiens le papier.</p><div class="code" id="code">…</div>
 <label class="drop">Pièce d'identité<input type="file" id="f1" accept="image/*"><span class="pvw" id="p1">Choisir une photo</span></label><label class="drop">Selfie avec le code<input type="file" id="f2" accept="image/*"><span class="pvw" id="p2">Choisir une photo</span></label><button class="btn w" id="send" disabled>Envoyer</button><p id="vm" class="err"></p></div></div>
 <div class="ov" id="pay"><div class="box s stack"><button class="x" data-close aria-label="Fermer">✕</button><div id="payb"></div></div></div>
-<div class="ov" id="dash"><div class="box"><button class="x" data-close aria-label="Fermer">✕</button><h2>Dashboard — Alexandre Lestriez</h2><h3 style="margin-top:16px">Vérifications en attente</h3><div id="dv"></div><h3 style="margin-top:20px">Commandes</h3><div id="do"></div></div></div>
+<div class="ov" id="dash"><div class="box big"><button class="x" data-close aria-label="Fermer">✕</button><h2>Dashboard — Alexandre Lestriez</h2><h3 style="margin-top:16px">Vérifications en attente</h3><div id="dv"></div><h3 style="margin-top:20px">Commandes</h3><div class="stats2" id="ost"></div>
+<div class="tools"><input id="osq" placeholder="Rechercher : réf, email, nom, ville, suivi…"><select id="osf"><option value="">Tous les statuts</option><option>nouvelle</option><option>payée</option><option>en préparation</option><option>expédiée</option><option>en transit</option><option>en livraison</option><option>livrée</option><option>annulée</option><option>remboursée</option><option value="_refund">↩ Remboursements</option></select></div><div id="do"></div></div></div>
+<div class="ov" id="addr"><div class="box s stack"><button class="x" data-close aria-label="Fermer">✕</button><h2>Adresse de livraison</h2><p class="mut" style="font-size:13px">Livraison en France. L'adresse doit être choisie dans la liste : une adresse inexistante est refusée.</p>
+<label>Prénom et nom<input id="aN" autocomplete="name" maxlength="60" placeholder="Jean Dupont"></label>
+<label>Adresse (numéro et rue)<input id="aL" autocomplete="off" maxlength="100" placeholder="Commence à taper : 12 rue de la Paix…"></label><div class="sugs" id="aSug"></div>
+<label>Complément (optionnel)<input id="aX" maxlength="80" placeholder="Bâtiment, étage, digicode…"></label>
+<div class="two"><label>Code postal<input id="aP" readonly placeholder="Auto"></label><label>Ville<input id="aC" readonly placeholder="Auto"></label></div>
+<label>Pays<input value="France" readonly></label><label>Téléphone (optionnel)<input id="aT" type="tel" autocomplete="tel" maxlength="20" placeholder="06 12 34 56 78"></label>
+<p class="err" id="aM"></p><button class="btn w" id="addrOk" disabled>Valider l'adresse et payer avec PayPal</button></div></div>
+<div class="ov" id="mine"><div class="box"><button class="x" data-close aria-label="Fermer">✕</button><h2>Mes commandes</h2><div id="mb" style="margin-top:12px"></div></div></div>
 <div id="cookie"><span style="flex:1;min-width:200px">Stockage local utilisé pour le panier et ton choix d'âge.</span><button class="btn alt" id="ck0">Refuser</button><button class="btn" id="ck1">Accepter</button></div><div id="toasts"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
