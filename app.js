@@ -33,7 +33,7 @@ const P = [
     flav: ["Strawberry Ice", "Cherry Ice", "Blueberry Sour Raspberry", "Strawberry Watermelon Ice", "New Peach Ice", "New Watermelon Ice", "New Strawberry Kiwi", "Summer Holiday", "New Blue Cherry Cranberry", "Mix Berries", "Peach Berry", "Watermelon Mango Peach", "Mango Passion Fruit", "Blueberry Raspberry Cherry", "Cherry Watermelon Freeze", "Blackberry Red Raspberry", "Strawberry Raspberry Ice", "Fizzy Cherry Cola"],
     img: [...Array.from({ length: 11 }, (_, i) => 37250 + i), 38167, 38168, 38169, 40801, 40837].map(i => `${Lp}${i}-medium_default/puff-30k-falcon-gem-20-mg-jnr.jpg`),
     desc: "20 mg de nicotine · 30 000 bouffées · Rechargeable." },
-  { id: "jnr-24k", name: "JNR 24K", price: 21.68, puffs: 24000, flav: ["Watermelon Ice", "Mexican Mango", "Cherry Ice", "Blue Razz Cherry"],
+  { id: "jnr-42k", name: "JNR 42K", price: 9.68, puffs: 24000, flav: ["Watermelon Ice", "Mexican Mango", "Cherry Ice", "Blue Razz Cherry"],
     img: ["https://puffsjnr.fr/wp-content/uploads/2025/12/jnr-24k-600x600.webp", "https://puffsjnr.fr/wp-content/uploads/2025/12/%E4%B8%BB%E5%9B%BE2-1-600x600.webp", "https://puffsjnr.fr/wp-content/uploads/2025/12/%E4%B8%BB%E5%9B%BE4-1-600x600.webp", "https://puffsjnr.fr/wp-content/uploads/2025/12/jnr-24000-puffs-600x600.webp"],
     desc: "20 mg de nicotine · 24 000 bouffées · 4 goûts au choix." }
 ];
